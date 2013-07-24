@@ -10,8 +10,10 @@ section[role="region"] > header:first-child {
   background: url(headers/images/ui/header.png) repeat-x 0 0;
   background-size: auto 100%;
   border: none;
+  overflow: hidden;
 }
 
+/* kc: can remove next section for cleaner effect */
 section[role="region"] > header:first-child:after {
   content: "";
   display: block;
@@ -25,7 +27,7 @@ section[role="region"] > header:first-child:after {
 }
 
 section[role="region"] > header:first-child h1 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   line-height: 4.8rem;
   text-align: left;
   color: #fff;
@@ -33,7 +35,8 @@ section[role="region"] > header:first-child h1 {
   text-overflow: ellipsis;
   display: block;
   overflow: hidden;
-  margin: 0 0 0 3rem;
+  margin: 0 0 0 1rem; /* kc: can we expel with this? */
+  float:left;
   padding-right: 1rem;
   height: 100%;
   font-weight: normal;
@@ -224,11 +227,14 @@ section[role="region"] > header:first-child .icon.icon-reply-all {
 /* Navigation links (back, cancel, etc) */
 section[role="region"] > header:first-child > button,
 section[role="region"] > header:first-child > a {
-  position: absolute;
+  /*position: absolute;
   left: 0;
+  */
+  float: left;
   width: 5rem;
   height: 5rem;
-  background: url(headers/images/ui/separator-large.png) no-repeat 2rem top / 0.2rem 5rem;
+  background: url(headers/images/ui/separator-large.png) no-repeat 4.9rem top / 0.2rem 5rem;
+
   overflow: hidden;
 }
 
@@ -241,7 +247,7 @@ section[role="region"] > header:first-child > button .icon,
 section[role="region"] > header:first-child > a .icon {
   position: static;
   display: block;
-  width: 2rem;
+  width: 5rem;
   height: 4.9rem;
   margin: 0;
   overflow: visible;
@@ -255,15 +261,17 @@ section[role="region"] > header:first-child > a .icon:after {
   left: 0;
   top: 0;
   z-index: -1;
-  width: 2rem;
+  width: 5rem;
   height: 4.9rem;
   background-color: #a03f25;
 }
 
 section[role="region"] > header > a .icon.icon-menu,
-section[role="region"] > header > button .icon.icon-menu {
+
+/* kc: removing left cut-off of menu option */
+/*section[role="region"] > header > button .icon.icon-menu {
   background-position: -1.1rem center;
-}
+}*/
 
 /* ----------------------------------
  * HEADERS: subheader
@@ -356,7 +364,7 @@ section[role="region"].skin-organic > header:first-child a,
 .skin-organic section[role="region"] > header:first-child a,
 section[role="region"].skin-organic > header:first-child button,
 .skin-organic section[role="region"] > header:first-child button {
-  background: url(headers/images/ui/organic/separator-large.png) no-repeat 2rem top / 0.2rem 4.8rem;
+  background: url(headers/images/ui/organic/separator-large.png) no-repeat 4.9rem top / 0.2rem 4.8rem;
 }
 
 section[role="region"].skin-organic header h2,
