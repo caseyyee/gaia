@@ -306,7 +306,10 @@ function updateDialog() {
     showOverlay(null);
     return;
   }
-  if (storageState === MediaDB.NOCARD) {
+
+  if (storageState === MediaDB.UPGRADING) {
+    showOverlay('upgrade');
+  } else if (storageState === MediaDB.NOCARD) {
     showOverlay('nocard');
   } else if (storageState === MediaDB.UNMOUNTED) {
     showOverlay('pluggedin');
@@ -797,8 +800,8 @@ function formatDuration(duration) {
 }
 
  // Pause on visibility change
-document.addEventListener('mozvisibilitychange', function visibilityChange() {
-  if (document.mozHidden) {
+document.addEventListener('visibilitychange', function visibilityChange() {
+  if (document.hidden) {
     stopParsingMetadata();
     if (playing)
       pause();

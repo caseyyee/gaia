@@ -181,6 +181,52 @@
     });
   });
 
+  getTestFile('/test/unit/media/kitten-45.bmp', function(testImageBlob) {
+    messagesDb.messages.push({
+      id: messagesDb.id++,
+      threadId: 6,
+      sender: '052780',
+      type: 'mms',
+      read: true,
+      delivery: 'received',
+      subject: 'Test MMS bmp format Image message',
+      smil: '<smil><body><par><img src="example.bmp"/>' +
+            '<text src="text1"/></par></body></smil>',
+      attachments: [{
+        location: 'text1',
+        content: new Blob(['This is a bmp image message'],
+            { type: 'text/plain' })
+      },{
+        location: 'example.bmp',
+        content: testImageBlob
+      }],
+      timestamp: new Date()
+    });
+  });
+
+  getTestFile('/test/unit/media/grid.wbmp', function(testImageBlob) {
+    messagesDb.messages.push({
+      id: messagesDb.id++,
+      threadId: 6,
+      sender: '052780',
+      type: 'mms',
+      read: true,
+      delivery: 'received',
+      subject: 'Test MMS wbmp format Image message',
+      smil: '<smil><body><par><img src="grid.wbmp"/>' +
+            '<text src="text1"/></par></body></smil>',
+      attachments: [{
+        location: 'text1',
+        content: new Blob(['This is a wbmp image message'],
+            { type: 'text/plain' })
+      },{
+        location: 'grid.wbmp',
+        content: testImageBlob
+      }],
+      timestamp: new Date()
+    });
+  });
+
   var participants = [
     '101', '102', '103', '104', '105', '106', '107', '108', '109'
   ];
@@ -263,6 +309,17 @@
         type: 'sms',
         timestamp: new Date(Date.now() - 600000)
        },
+      {
+        threadId: 4,
+        sender: null,
+        receiver: '197746797',
+        body: 'This message is intended to demonstrate natural line ' +
+          'wrapping. (delivery: sent ; deliveryStatus: success)',
+        delivery: 'sent',
+        deliveryStatus: 'success',
+        type: 'sms',
+        timestamp: new Date(Date.now() - 550000)
+       },
        {
         threadId: 4,
         sender: '197746797',
@@ -305,6 +362,17 @@
       },
       {
         threadId: 4,
+        sender: null,
+        receiver: '197746797',
+        read: true,
+        body: 'short (delivery success)',
+        delivery: 'sent',
+        deliveryStatus: 'success',
+        type: 'sms',
+        timestamp: new Date(Date.now() - 150000)
+      },
+      {
+        threadId: 4,
         sender: '197746797',
         read: true,
         body: 'short (delivery: received)',
@@ -341,6 +409,18 @@
         subject: 'Error download',
         timestamp: new Date(Date.now() - 150000),
         expiryDate: new Date(Date.now() - ONE_DAY_TIME)
+      },
+      {
+        threadId: 8,
+        sender: '123456',
+        type: 'mms',
+        delivery: 'received',
+        deliveryStatus: ['success'],
+        subject: 'No attachment error',
+        smil: '<smil><body><par><text src="text1"/></par></body></smil>',
+        attachments: null,
+        timestamp: new Date(Date.now() - 150000),
+        expiryDate: new Date(Date.now() + ONE_DAY_TIME)
       }
     ],
     threads: [
@@ -616,13 +696,21 @@
           name: 'mock send error'
         };
         if (typeof request.onerror === 'function') {
-          request.onerror();
+          request.onerror({
+            target: {
+              result: request
+            }
+          });
         }
         trigger('failed', sendInfo);
       } else {
         sendInfo.message.delivery = 'sent';
         if (typeof request.onsuccess === 'function') {
-          request.onsuccess();
+          request.onsuccess({
+            target: {
+              result: request
+            }
+          });
         }
         trigger('sent', sendInfo);
 
@@ -653,7 +741,7 @@
 
     setTimeout(initiateSend, simulation.delay());
 
-    return request;
+    return [request];
   };
 
   function hasSameParticipants(a, b) {
@@ -732,13 +820,21 @@
           name: 'mock send error'
         };
         if (typeof request.onerror === 'function') {
-          request.onerror();
+          request.onerror({
+            target: {
+              result: request
+            }
+          });
         }
         trigger('failed', sendInfo);
       } else {
         sendInfo.message.delivery = 'sent';
         if (typeof request.onsuccess === 'function') {
-          request.onsuccess();
+          request.onsuccess({
+            target: {
+              result: request
+            }
+          });
         }
         trigger('sent', sendInfo);
 
@@ -780,7 +876,7 @@
 
     setTimeout(initiateSend, simulation.delay());
 
-    return request;
+    return [request];
   };
 
   // getThreads

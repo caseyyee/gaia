@@ -168,12 +168,7 @@ var Camera = {
     fileFormat: 'jpeg'
   },
 
-  _previewConfigVideo: {
-    profile: 'cif',
-    rotation: 0,
-    width: 352,
-    height: 288
-  },
+  _videoProfile: {},
 
   _shutterKey: 'camera.shutter.enabled',
   _shutterSound: null,
@@ -195,6 +190,8 @@ var Camera = {
 
   // Maximum image resolution for still photos taken with camera
   MAX_IMAGE_RES: 1600 * 1200, // Just under 2 megapixels
+  // An estimated JPEG file size is caluclated from 90% quality 24bit/pixel
+  ESTIMATED_JPEG_FILE_SIZE: 300 * 1024,
 
   get overlayTitle() {
     return document.getElementById('overlay-title');
@@ -250,6 +247,14 @@ var Camera = {
 
   get selectButton() {
     return document.getElementById('select-button');
+  },
+
+  get overlayCloseButton() {
+    return document.getElementById('overlay-close-button');
+  },
+
+  get overlayMenuGroup() {
+    return document.getElementById('overlay-menu-group');
   },
 
   // We have seperated init and delayedInit as we want to make sure
@@ -310,8 +315,8 @@ var Camera = {
 
     // We lock the screen orientation and deal with rotating
     // the icons manually
-    var css = '#switch-button span, #capture-button span, ' +
-      '#gallery-button span { -moz-transform: rotate(0deg); }';
+    var css = '#switch-button span, #capture-button span, #toggle-flash, ' +
+      '#toggle-camera, #gallery-button span { -moz-transform: rotate(0deg); }';
     var insertId = this._styleSheet.cssRules.length - 1;
     this._orientationRule = this._styleSheet.insertRule(css, insertId);
     window.addEventListener('deviceorientation', this.orientChange.bind(this));
@@ -332,6 +337,8 @@ var Camera = {
       .addEventListener('click', this.retakePressed.bind(this));
     this.selectButton
       .addEventListener('click', this.selectPressed.bind(this));
+    this.overlayCloseButton
+      .addEventListener('click', this.cancelPick.bind(this));
 
     if (!navigator.mozCameras) {
       this.captureButton.setAttribute('disabled', 'disabled');
@@ -472,9 +479,6 @@ var Camera = {
   },
 
   cancelPick: function camera_cancelPick() {
-    if (this.cancelPickButton.hasAttribute('disabled'))
-      return;
-
     if (this._pendingPick) {
       this._pendingPick.postError('pick cancelled');
     }
@@ -505,8 +509,8 @@ var Camera = {
       this._cameraObj.getPreviewStream(this._previewConfig,
                                        gotPreviewStream.bind(this));
     } else {
-      this._previewConfigVideo.rotation = this._phoneOrientation;
-      this._cameraObj.getPreviewStreamVideoMode(this._previewConfigVideo,
+      this._videoProfile.rotation = this._phoneOrientation;
+      this._cameraObj.getPreviewStreamVideoMode(this._videoProfile,
                                                 gotPreviewStream.bind(this));
     }
   },
@@ -550,6 +554,10 @@ var Camera = {
       this.stopRecording();
       return;
     }
+    // Hide the filmstrip to prevent the users from
+    // entering the preview mode after Camera starts recording button pressed
+    if (Filmstrip.isShown())
+      Filmstrip.hide();
 
     this.startRecording();
   },
@@ -568,13 +576,8 @@ var Camera = {
       this._recording = true;
       this.startRecordingTimer();
 
-      // Hide the filmstrip to prevent the users from
-      // entering the preview mode after Camera starts recording
-      if (Filmstrip.isShown())
-        Filmstrip.hide();
-
       // User closed app while recording was trying to start
-      if (document.mozHidden) {
+      if (document.hidden) {
         this.stopRecording();
       }
     }).bind(this);
@@ -789,6 +792,8 @@ var Camera = {
         camera.capabilities.focusModes.indexOf('auto') !== -1;
       this._pictureSize =
         this.pickPictureSize(camera.capabilities.pictureSizes);
+      this._videoProfile =
+        this.pickVideoProfile(camera.capabilities.recorderProfiles);
 
       this.setPreviewSize(camera);
       this.enableCameraFeatures(camera.capabilities);
@@ -803,8 +808,8 @@ var Camera = {
         camera.getPreviewStream(this._previewConfig,
                                 gotPreviewScreen.bind(this));
       } else {
-        this._previewConfigVideo.rotation = this._phoneOrientation;
-        this._cameraObj.getPreviewStreamVideoMode(this._previewConfigVideo,
+        this._videoProfile.rotation = this._phoneOrientation;
+        this._cameraObj.getPreviewStreamVideoMode(this._videoProfile,
                                                   gotPreviewScreen.bind(this));
       }
     }
@@ -893,6 +898,7 @@ var Camera = {
       var alertText = this._pendingPick ? 'activity-size-limit-reached' :
         'size-limit-reached';
       alert(navigator.mozL10n.get(alertText));
+      this.sizeLimitAlertActive = false;
     }
   },
 
@@ -947,6 +953,7 @@ var Camera = {
     if (this._recording) {
       this.stopRecording();
     }
+    this.hideFocusRing();
     this.disableButtons();
     this.viewfinder.pause();
     this._previewActive = false;
@@ -1148,7 +1155,7 @@ var Camera = {
       // Preview may have previously been paused if storage
       // was not available
       // not trigger preview while in pick mode
-      if (!this._previewActive && !document.mozHidden && !this._pendingPick) {
+      if (!this._previewActive && !document.hidden && !this._pendingPick) {
         this.startPreview();
       }
       this.showOverlay(null);
@@ -1216,16 +1223,60 @@ var Camera = {
       return;
     }
 
+    if (this._pendingPick) {
+      this.overlayMenuGroup.classList.remove('hidden');
+    } else {
+      this.overlayMenuGroup.classList.add('hidden');
+    }
+
     this.overlayTitle.textContent = navigator.mozL10n.get(id + '-title');
     this.overlayText.textContent = navigator.mozL10n.get(id + '-text');
     this.overlay.classList.remove('hidden');
   },
 
   pickPictureSize: function camera_pickPictureSize(pictureSizes) {
+    var targetSize = null;
+    var targetFileSize = 0;
+    if (this._pendingPick && this._pendingPick.source.data.maxFileSizeBytes) {
+      // we use worse case of all compression method: gif, jpg, png
+      targetFileSize = this._pendingPick.source.data.maxFileSizeBytes;
+    }
+    if (this._pendingPick && this._pendingPick.source.data.width &&
+        this._pendingPick.source.data.height) {
+      // if we have pendingPick with width and height, set it as target size.
+      targetSize = {'width': this._pendingPick.source.data.width,
+                    'height': this._pendingPick.source.data.height};
+    }
     var maxRes = this.MAX_IMAGE_RES;
+    var estimatedJpgSize = this.ESTIMATED_JPEG_FILE_SIZE;
     var size = pictureSizes.reduce(function(acc, size) {
       var mp = size.width * size.height;
-      return (mp > acc.width * acc.height && mp <= maxRes) ? size : acc;
+      // we don't need the resolution larger than maxRes
+      if (mp > maxRes) {
+        return acc;
+      }
+      // We assume the relationship between MP to file size is linear.
+      // This may be inaccurate on all cases.
+      var estimatedFileSize = mp * estimatedJpgSize / maxRes;
+      if (targetFileSize > 0 && estimatedFileSize > targetFileSize) {
+        return acc;
+      }
+
+      if (targetSize) {
+        // find a resolution both width and height are large than pick size
+        if (size.width < targetSize.width || size.height < targetSize.height) {
+          return acc;
+        }
+        // it's first pictureSize.
+        if (!acc.width || acc.height) {
+          return size;
+        }
+        // find large enough but as small as possible.
+        return (mp < acc.width * acc.height) ? size : acc;
+      } else {
+        // no target size, find as large as possible.
+        return (mp > acc.width * acc.height && mp <= maxRes) ? size : acc;
+      }
     }, {width: 0, height: 0});
 
     if (size.width === 0 && size.height === 0) {
@@ -1235,8 +1286,30 @@ var Camera = {
     }
   },
 
+  pickVideoProfile: function camera_pickVideoProfile(profiles) {
+    var profileName;
+    // Attempt to find low resolution profile if accessed via pick activity
+    if (this._pendingPick && this._pendingPick.source.data.maxFileSizeBytes &&
+        'qcif' in profiles) {
+      profileName = 'qcif';
+    // Default to cif profile
+    } else if ('cif' in profiles) {
+      profileName = 'cif';
+    // Fallback to first valid profile if none found
+    } else {
+      profileName = Object.keys(profiles)[0];
+    }
+
+    return {
+      profile: profileName,
+      rotation: 0,
+      width: profiles[profileName].video.width,
+      height: profiles[profileName].video.height
+    };
+  },
+
   initPositionUpdate: function camera_initPositionUpdate() {
-    if (this._watchId || document.mozHidden) {
+    if (this._watchId || document.hidden) {
       return;
     }
     this._watchId = navigator.geolocation
@@ -1275,8 +1348,8 @@ var Camera = {
 
 Camera.init();
 
-document.addEventListener('mozvisibilitychange', function() {
-  if (document.mozHidden) {
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
     Camera.stopPreview();
     Camera.cancelPick();
     Camera.cancelPositionUpdate();

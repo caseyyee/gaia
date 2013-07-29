@@ -33,18 +33,17 @@
   window.AppError = function AppError(app) {
     var self = this;
     this.app = app;
-    this.app.frame.addEventListener('mozbrowsererror', function(evt) {
+    this.app.iframe.addEventListener('mozbrowsererror', function(evt) {
       if (evt.detail.type != 'other')
         return;
 
       console.warn(
         'app of [' + self.app.origin + '] got a mozbrowsererror event.');
 
-      if (self.injected) {
-        self.update();
-      } else {
+      if (!self.injected) {
         self.render();
       }
+      self.update();
       self.show();
       self.injected = true;
     });
@@ -116,11 +115,9 @@
     return '<div id="' + this.id() + '" class="' +
         AppError.className + ' visible" role="dialog">' +
       '<div class="modal-dialog-message-container inner">' +
-        '<h3 data-l10n-id="error-title" class="title">' +
-          this.getTitle() + '</h3>' +
+        '<h3 data-l10n-id="error-title" class="title"></h3>' +
         '<p>' +
-         '<span data-l10n-id="error-message" class="message">' +
-            this.getMessage() + '</span>' +
+         '<span data-l10n-id="error-message" class="message"></span>' +
         '</p>' +
       '</div>' +
       '<menu data-items="2">' +
@@ -416,6 +413,28 @@
   };
 
   /**
+   * Event prefix presents the object type
+   * when publishing an event from the element.
+   * Always 'app' for now.
+   *
+   * @type {String}
+   */
+  AppWindow.prototype.eventPrefix = 'app';
+
+  /**
+   * Publish an event.
+   *
+   * @param  {String} event  Event name, without object type prefix.
+   * @param  {Object} detail Parameters in JSON format.
+   */
+  AppWindow.prototype.publish = function(event, detail) {
+    var evt = document.createEvent('CustomEvent');
+    evt.initCustomEvent(this.eventPrefix + event,
+                        true, false, detail || this.config);
+    this.frame.dispatchEvent(evt);
+  };
+
+  /**
    * We will rotate the app window during app transition per current screen
    * orientation and app's orientation. The width and height would be
    * temporarily changed during the transition in this function.
@@ -527,10 +546,7 @@
     this.frame.style.width = cssWidth;
     this.frame.style.height = cssHeight;
 
-    // We will call setInlineActivityFrameSize()
-    // if changeActivityFrame is not explicitly set to false.
-    dispatchEvent(new CustomEvent('appresize',
-        {changeActivityFrame: changeActivityFrame}));
+    this.publish('resize', {changeActivityFrame: changeActivityFrame});
   };
 
 }(this));

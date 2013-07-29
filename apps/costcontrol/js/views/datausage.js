@@ -45,7 +45,7 @@ var DataUsageTab = (function() {
       window.addEventListener('localized', localize);
 
       // Update and chart visibility
-      document.addEventListener('mozvisibilitychange', updateWhenVisible);
+      document.addEventListener('visibilitychange', updateWhenVisible);
       wifiToggle.addEventListener('click', toggleWifi);
       mobileToggle.addEventListener('click', toggleMobile);
 
@@ -109,7 +109,7 @@ var DataUsageTab = (function() {
       return;
     }
 
-    document.removeEventListener('mozvisibilitychange', updateWhenVisible);
+    document.removeEventListener('visibilitychange', updateWhenVisible);
     wifiToggle.removeEventListener('click', toggleWifi);
     mobileToggle.removeEventListener('click', toggleMobile);
     ConfigManager.removeObserver('dataLimit', toggleDataLimit);
@@ -156,7 +156,7 @@ var DataUsageTab = (function() {
 
   // On visibility change
   function updateWhenVisible(evt) {
-    if (!document.mozHidden) {
+    if (!document.hidden) {
       requestDataUsage();
     }
   }
@@ -626,7 +626,7 @@ var DataUsageTab = (function() {
 
   // Check if the segment of the graph is inside chart area. If so, draw it
   function clipAndDrawSegment(ctx, model, x0, y0, x1, y1) {
-    if (x0 >= model.originX && x1 < model.endX) {
+    if (x0 >= model.originX && x1 <= model.endX) {
       var x0Fixed = Math.floor(x0) - 0.5;
       var x1Fixed = Math.floor(x1) + 0.5;
 

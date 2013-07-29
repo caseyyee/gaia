@@ -130,6 +130,11 @@ function init() {
     });
   }
 
+  // show dialog in upgradestart, when it finished, it will turned to ready.
+  musicdb.onupgrading = function() {
+    showOverlay('upgrade');
+  };
+
   // This is called when DeviceStorage becomes unavailable because the
   // sd card is removed or because it is mounted for USB mass storage
   // This may be called before onready if it is unavailable to begin with
@@ -173,7 +178,8 @@ function init() {
 
   musicdb.onready = function() {
     // Hide the nocard or pluggedin overlay if it is displayed
-    if (currentOverlay === 'nocard' || currentOverlay === 'pluggedin')
+    if (currentOverlay === 'nocard' || currentOverlay === 'pluggedin' ||
+        currentOverlay === 'upgrade')
       showOverlay(null);
 
     // Display music that we already know about
@@ -554,21 +560,21 @@ var ModeManager = {
           callback();
       });
     } else {
-      if (mode === MODE_LIST || mode === MODE_PICKER) {
+      if (mode === MODE_LIST || mode === MODE_PICKER)
         document.getElementById('views-list').classList.remove('hidden');
-
-        // XXX Please see Bug 857674 and Bug 886254 for detail.
-        // There is some unwanted logic that will automatically adjust
-        // the input element(search box) while users input characters.
-        // So we need to hide sublist and player when we are in list mode.
-        document.getElementById('views-sublist').classList.add('hidden');
-        document.getElementById('views-player').classList.add('hidden');
-      }
       else if (mode === MODE_SUBLIST)
         document.getElementById('views-sublist').classList.remove('hidden');
       else if (mode === MODE_SEARCH_FROM_TILES ||
-               mode === MODE_SEARCH_FROM_LIST)
+               mode === MODE_SEARCH_FROM_LIST) {
         document.getElementById('search').classList.remove('hidden');
+        // XXX Please see Bug 857674 and Bug 886254 for detail.
+        // There is some unwanted logic that will automatically adjust
+        // the input element(search box) while users input characters
+        // This only happens on sublist and player views show up,
+        // so we just hide sublist and player when we are in search mode.
+        document.getElementById('views-sublist').classList.add('hidden');
+        document.getElementById('views-player').classList.add('hidden');
+      }
 
       if (callback)
         callback();
