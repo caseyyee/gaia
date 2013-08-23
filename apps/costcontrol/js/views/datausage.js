@@ -20,6 +20,12 @@ var DataUsageTab = (function() {
   var wifiItem, mobileItem;
 
   var costcontrol, initialized, model;
+
+  var DEVICE_RATIO = window.devicePixelRatio || 1;
+  function toDevicePixels(origin) {
+     return origin * DEVICE_RATIO;
+  }
+
   function setupTab() {
     if (initialized) {
       return;
@@ -57,10 +63,10 @@ var DataUsageTab = (function() {
         var lastDataReset = settings.lastDataReset;
         var nextReset = settings.nextReset;
         model = {
-          height: graphicArea.clientHeight,
-          width: graphicArea.clientWidth,
-          originX: Math.floor(graphicArea.clientWidth * 0.15),
-          endX: Math.floor(graphicArea.clientWidth * 0.95),
+          height: toDevicePixels(graphicArea.clientHeight),
+          width: toDevicePixels(graphicArea.clientWidth),
+          originX: Math.floor(toDevicePixels(graphicArea.clientWidth) * 0.15),
+          endX: Math.floor(toDevicePixels(graphicArea.clientWidth) * 0.95),
           axis: {
             Y: {
               lower: 0,
@@ -384,7 +390,7 @@ var DataUsageTab = (function() {
     var step = model.axis.Y.step;
     var limitY = model.axis.Y.get(model.limits.value);
     ctx.strokeStyle = '#e0e0e0';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = toDevicePixels(1);
     var displayLimit = model.limits.enabled && mobileToggle.checked;
     for (var y = model.originY - step; y > step; y -= step) {
       if (displayLimit && same(y, limitY, 0.1)) {
@@ -401,7 +407,7 @@ var DataUsageTab = (function() {
     var days = (model.axis.X.upper - model.axis.X.lower) / DAY;
     var step = model.axis.X.len / days;
     ctx.strokeStyle = '#eeeeee';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = toDevicePixels(1);
     for (var x = model.originX; x <= model.endX; x += step) {
       var drawX = Math.floor(x) + 0.5;
       ctx.beginPath();
@@ -413,9 +419,14 @@ var DataUsageTab = (function() {
     ctx.restore();
   }
 
+  function makeCSSFontString(fontSize, fontWeight) {
+    return fontWeight + ' ' + fontSize + 'px sans-serif';
+  }
+
   var todayLabel = {};
-  var FONTSIZE = 12;
-  var TODAY_FONTSIZE = 14;
+  var FONTSIZE = toDevicePixels(13);
+  var TODAY_FONTSIZE = toDevicePixels(15);
+  var FONTWEIGHT = '600';
   function drawTodayLayer(model) {
     var canvas = document.getElementById('today-layer');
     var height = canvas.height = model.height;
@@ -426,13 +437,12 @@ var DataUsageTab = (function() {
     var offsetX = model.axis.X.get(model.axis.X.today);
 
     // Configure Centered today text
-    var marginTop = 10;
+    var marginTop = toDevicePixels(10);
 
     var todayTag = formatChartDate(model.axis.X.today);
 
     // Render the text
-    ctx.fontWeight = '600';
-    ctx.fontSize = TODAY_FONTSIZE + 'px';
+    ctx.font = makeCSSFontString(TODAY_FONTSIZE, FONTWEIGHT);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
@@ -466,7 +476,7 @@ var DataUsageTab = (function() {
     var step = model.axis.Y.step;
     var dataStep = model.axis.Y.upper - model.axis.Y.maxValue;
     var offsetX = model.originX - 4, marginBottom = 4;
-    ctx.fontSize = FONTSIZE + 'px';
+    ctx.font = makeCSSFontString(FONTSIZE, FONTWEIGHT);
     ctx.textAlign = 'right';
     var displayLimit = mobileToggle.checked && model.limits.enabled;
     var lastUnit;
@@ -501,12 +511,11 @@ var DataUsageTab = (function() {
 
     // Now the X axis
     ctx.fillStyle = '#6a6a6a';
-    var marginTop = 10;
+    var marginTop = toDevicePixels(10);
 
     // Left tag
     var leftTag = formatChartDate(model.axis.X.lower);
-    ctx.fontWeight = '600';
-    ctx.fontSize = FONTSIZE + 'px';
+    ctx.font = makeCSSFontString(FONTSIZE, FONTWEIGHT);
     ctx.textBaseline = 'top';
     ctx.textAlign = 'start';
 
@@ -548,13 +557,13 @@ var DataUsageTab = (function() {
     var offsetY = set ? model.axis.Y.get(model.limits.value) :
                         FONTSIZE + 2 * marginTop;
 
-    ctx.fontWeight = '600';
-    ctx.fontSize = FONTSIZE + 'px';
+    ctx.font = makeCSSFontString(FONTSIZE, FONTWEIGHT);
 
     // The dashed limit line
-    var lineLength = 15;
-    var gapLength = 7;
+    var lineLength = toDevicePixels(15);
+    var gapLength = toDevicePixels(7);
     ctx.strokeStyle = color;
+    ctx.lineWidth = toDevicePixels(1);
     ctx.beginPath();
     for (var x = model.originX, drawY = Math.floor(offsetY) - 0.5;
          x < model.endX; x += gapLength) {
@@ -580,7 +589,7 @@ var DataUsageTab = (function() {
     // Style
     ctx.fillStyle = '#cbd936';
     ctx.strokeStyle = '#8b9052';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = toDevicePixels(2);
     ctx.moveTo(model.originX, model.originY);
     var today = toMidnight(new Date());
     var sum = 0; var x, y = model.originY;
@@ -616,7 +625,7 @@ var DataUsageTab = (function() {
 
   function drawTodayMark(ctx, x, y, color) {
     ctx.save();
-    var radius = 4;
+    var radius = toDevicePixels(4);
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI);
@@ -662,7 +671,7 @@ var DataUsageTab = (function() {
 
     ctx.fillStyle = 'rgba(147, 21, 98, 0.7)';
     ctx.strokeStyle = '#762d4a';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = toDevicePixels(2);
 
     var today = toMidnight(new Date());
     var sum = 0; var x, y = model.originY;

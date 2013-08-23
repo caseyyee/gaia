@@ -294,6 +294,19 @@ function init() {
       }, DELETE_BATCH_TIMEOUT);
     }
   };
+
+  // Click to open the media storage panel when the default storage
+  // is unavailable.
+  document.getElementById('storage-setting-button').
+    addEventListener('click', function() {
+      var activity = new MozActivity({
+      name: 'configure',
+      data: {
+        target: 'device',
+        section: 'mediaStorage'
+      }
+    });
+  });
 }
 
 //
@@ -351,8 +364,21 @@ function showOverlay(id) {
     return;
   }
 
-  var title = navigator.mozL10n.get(id + '-title');
-  var text = navigator.mozL10n.get(id + '-text');
+  var menu = document.getElementById('overlay-menu');
+  if (id === 'nocard') {
+    menu.classList.remove('hidden');
+  } else {
+    menu.classList.add('hidden');
+  }
+
+  var title, text;
+  if (id === 'nocard') {
+    title = navigator.mozL10n.get('nocard2-title');
+    text = navigator.mozL10n.get('nocard2-text');
+  } else {
+    title = navigator.mozL10n.get(id + '-title');
+    text = navigator.mozL10n.get(id + '-text');
+  }
 
   var titleElement = document.getElementById('overlay-title');
   var textElement = document.getElementById('overlay-text');
@@ -1191,9 +1217,13 @@ var ListView = {
             ModeManager.push(MODE_PLAYER, function() {
               var targetIndex = parseInt(target.dataset.index);
 
-              PlayerView.setSourceType(TYPE_MIX);
-              PlayerView.dataSource = this.dataSource;
-              PlayerView.play(targetIndex);
+              if (pendingPick)
+                PlayerView.setSourceType(TYPE_SINGLE);
+              else
+                PlayerView.setSourceType(TYPE_MIX);
+
+                PlayerView.dataSource = this.dataSource;
+                PlayerView.play(targetIndex);
             }.bind(this));
           } else if (option) {
             var index = target.dataset.index;
@@ -1561,10 +1591,16 @@ var SearchView = {
     function sv_openResult(option, data, index, keyRange) {
       if (option === 'title') {
         ModeManager.push(MODE_PLAYER, function() {
-          PlayerView.setSourceType(TYPE_LIST);
-          PlayerView.dataSource = [data];
-          PlayerView.play(0, index % 10);
-        });
+          if (pendingPick) {
+            PlayerView.setSourceType(TYPE_SINGLE);
+            PlayerView.dataSource = this.dataSource;
+            PlayerView.play(index);
+          } else {
+            PlayerView.setSourceType(TYPE_LIST);
+            PlayerView.dataSource = [data];
+            PlayerView.play(0, index);
+          }
+        }.bind(this));
       } else {
         SubListView.activate(option, data, index, keyRange, 'next', function() {
           ModeManager.push(MODE_SUBLIST);

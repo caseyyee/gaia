@@ -9,18 +9,16 @@ requireApp('system/test/unit/mock_custom_dialog.js');
 requireApp('system/test/unit/mock_utility_tray.js');
 requireApp('system/test/unit/mock_system_banner.js');
 requireApp('system/test/unit/mock_chrome_event.js');
-requireApp('system/test/unit/mock_settings_listener.js');
+requireApp('system/shared/test/unit/mocks/mock_settings_listener.js');
 requireApp('system/test/unit/mock_statusbar.js');
 requireApp('system/test/unit/mock_notification_screen.js');
 requireApp('system/shared/test/unit/mocks/mock_navigator_moz_settings.js');
 requireApp('system/shared/test/unit/mocks/mock_navigator_wake_lock.js');
-requireApp('system/test/unit/mock_navigator_moz_mobile_connection.js');
+requireApp('system/shared/test/unit/mocks/mock_navigator_moz_mobile_connection.js');
 requireApp('system/test/unit/mock_l10n.js');
 requireApp('system/test/unit/mock_asyncStorage.js');
 
-requireApp('system/test/unit/mocks_helper.js');
-
-var mocksForUpdateManager = [
+var mocksForUpdateManager = new MocksHelper([
   'StatusBar',
   'SystemBanner',
   'NotificationScreen',
@@ -30,13 +28,7 @@ var mocksForUpdateManager = [
   'AppUpdatable',
   'SettingsListener',
   'asyncStorage'
-];
-
-mocksForUpdateManager.forEach(function(mockName) {
-  if (! window[mockName]) {
-    window[mockName] = null;
-  }
-});
+]).init();
 
 suite('system/UpdateManager', function() {
   var realL10n;
@@ -57,8 +49,7 @@ suite('system/UpdateManager', function() {
   var tinyTimeout = 10;
   var lastDispatchedEvent = null;
 
-  var mocksHelper;
-
+  mocksForUpdateManager.attachTestHelpers();
   suiteSetup(function() {
     realNavigatorSettings = navigator.mozSettings;
     navigator.mozSettings = MockNavigatorSettings;
@@ -84,9 +75,6 @@ suite('system/UpdateManager', function() {
       };
     };
 
-    mocksHelper = new MocksHelper(mocksForUpdateManager);
-    mocksHelper.suiteSetup();
-
     UpdateManager.NOTIFICATION_BUFFERING_TIMEOUT = 0;
     UpdateManager.TOASTER_TIMEOUT = 0;
   });
@@ -101,8 +89,6 @@ suite('system/UpdateManager', function() {
     realRequestWakeLock = null;
 
     UpdateManager._dispatchEvent = realDispatchEvent;
-
-    mocksHelper.suiteTeardown();
   });
 
   setup(function() {
@@ -183,8 +169,6 @@ suite('system/UpdateManager', function() {
     document.body.appendChild(fakeToaster);
     document.body.appendChild(fakeDialog);
     document.body.appendChild(fakeWarning);
-
-    mocksHelper.setup();
   });
 
   teardown(function(done) {
@@ -211,8 +195,6 @@ suite('system/UpdateManager', function() {
       UpdateManager._errorTimeout = null;
 
       MockAppsMgmt.mTeardown();
-
-      mocksHelper.teardown();
 
       fakeNode.parentNode.removeChild(fakeNode);
       fakeToaster.parentNode.removeChild(fakeToaster);
@@ -391,7 +373,6 @@ suite('system/UpdateManager', function() {
           assert.isUndefined(UpdateManager.systemUpdatable.mKnownUpdate);
       });
     });
-
   });
 
   suite('UI', function() {
@@ -486,7 +467,7 @@ suite('system/UpdateManager', function() {
       });
 
       test('downloadedBytes should be reset when stopping the download',
-          function() {
+      function() {
 
         UpdateManager.removeFromDownloadsQueue(uAppWithDownloadAvailable);
         UpdateManager.addToDownloadsQueue(uAppWithDownloadAvailable);
@@ -510,7 +491,6 @@ suite('system/UpdateManager', function() {
       test('should display the notification', function() {
         assert.isTrue(fakeNode.classList.contains('displayed'));
       });
-
     });
 
     suite('uncompress display', function() {

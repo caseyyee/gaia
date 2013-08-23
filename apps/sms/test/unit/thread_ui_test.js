@@ -54,8 +54,9 @@ var mocksHelperForThreadUI = new MocksHelper([
 mocksHelperForThreadUI.init();
 
 suite('thread_ui.js >', function() {
-  var sendButton;
   var input;
+  var container;
+  var sendButton;
   var composeForm;
   var recipient;
 
@@ -83,6 +84,7 @@ suite('thread_ui.js >', function() {
   }
 
   suiteSetup(function(done) {
+    this.timeout(5000);
     mocksHelper.suiteSetup();
 
     realMozL10n = navigator.mozL10n;
@@ -126,8 +128,9 @@ suite('thread_ui.js >', function() {
     mocksHelper.setup();
     loadBodyHTML('/index.html');
 
-    sendButton = document.getElementById('messages-send-button');
     input = document.getElementById('messages-input');
+    container = document.getElementById('messages-container');
+    sendButton = document.getElementById('messages-send-button');
     composeForm = document.getElementById('messages-compose-form');
 
     ThreadUI.recipients = null;
@@ -142,6 +145,50 @@ suite('thread_ui.js >', function() {
     MockNavigatormozMobileMessage.mTeardown();
     mocksHelper.teardown();
     ThreadUI._mozMobileMessage = realMozMobileMessage;
+  });
+
+  suite('scrolling', function() {
+    teardown(function() {
+      container.innerHTML = '';
+    });
+    setup(function() {
+      // we don't have CSS so we must force the scroll here
+      container.style.overflow = 'scroll';
+      container.style.height = '50px';
+      // fake content
+      var innerHTML = '';
+      for (var i = 0; i < 99; i++) {
+        innerHTML += ThreadUI.tmpl.message.interpolate({
+          id: String(i),
+          bodyHTML: 'test #' + i
+        });
+      }
+      container.innerHTML = innerHTML;
+      // This crudely emulates the CSS styles applied to the message list
+      container.lastElementChild.style.paddingBottom = '16px';
+    });
+
+    test('scroll 100px, should be detected as a manual scroll', function(done) {
+      container.addEventListener('scroll', function onscroll() {
+        container.removeEventListener('scroll', onscroll);
+        assert.ok(ThreadUI.isScrolledManually);
+        done();
+      });
+      container.scrollTop = 100;
+    });
+
+    test('scroll to bottom, should be detected as an automatic scroll',
+    function(done) {
+      container.addEventListener('scroll', function onscroll() {
+        container.removeEventListener('scroll', onscroll);
+        assert.isFalse(ThreadUI.isScrolledManually);
+        assert.ok((container.scrollTop + container.clientHeight) ==
+                  container.scrollHeight);
+        done();
+      });
+      ThreadUI.isScrolledManually = false;
+      ThreadUI.scrollViewToBottom();
+    });
   });
 
   suite('Search', function() {
@@ -308,12 +355,13 @@ suite('thread_ui.js >', function() {
   });
 
   suite('updateCounter() >', function() {
-    var banner, convertBanner, shouldEnableSend, form;
+    var banner, convertBanner, shouldEnableSend, form, localize;
 
     setup(function() {
       banner = document.getElementById('messages-max-length-notice');
       convertBanner = document.getElementById('messages-convert-notice');
       form = document.getElementById('messages-compose-form');
+      localize = this.sinon.spy(navigator.mozL10n, 'localize');
     });
 
     suite('no characters entered >', function() {
@@ -577,9 +625,11 @@ suite('thread_ui.js >', function() {
         assert.isFalse(banner.classList.contains('hide'));
       });
 
-      test('banner has at size limit text', function() {
-        assert.equal(banner.querySelector('p').textContent,
-          'messages-max-length-text');
+      test('banner localized', function() {
+        assert.ok(
+          localize.calledWith(banner.querySelector('p'),
+            'messages-max-length-text')
+        );
       });
 
       test('message type is mms', function() {
@@ -612,9 +662,11 @@ suite('thread_ui.js >', function() {
         assert.isFalse(banner.classList.contains('hide'));
       });
 
-      test('banner has at size limit text', function() {
-        assert.equal(banner.querySelector('p').textContent,
-          'messages-exceeded-length-text');
+      test('banner localized', function() {
+        assert.ok(
+          localize.calledWith(banner.querySelector('p'),
+            'messages-exceeded-length-text')
+        );
       });
 
       test('message type is mms', function() {
@@ -628,12 +680,13 @@ suite('thread_ui.js >', function() {
   });
 
   suite('message type conversion >', function() {
-    var convertBanner, convertBannerText, form;
+    var convertBanner, convertBannerText, form, localize;
     setup(function() {
       this.sinon.useFakeTimers();
       convertBanner = document.getElementById('messages-convert-notice');
       convertBannerText = convertBanner.querySelector('p');
       form = document.getElementById('messages-compose-form');
+      localize = this.sinon.spy(navigator.mozL10n, 'localize');
     });
     test('sms to mms and back displays banner', function() {
       // cause a type switch event to happen
@@ -641,8 +694,12 @@ suite('thread_ui.js >', function() {
       assert.isTrue(sendButton.classList.contains('has-counter'));
       assert.isFalse(convertBanner.classList.contains('hide'),
         'conversion banner is shown for mms');
-      assert.equal(convertBannerText.textContent, 'converted-to-mms',
-        'conversion banner has mms message');
+
+      assert.ok(
+        localize.calledWith(convertBannerText, 'converted-to-mms'),
+        'conversion banner has mms message'
+      );
+      localize.reset();
 
       this.sinon.clock.tick(2999);
       assert.isFalse(convertBanner.classList.contains('hide'),
@@ -657,8 +714,10 @@ suite('thread_ui.js >', function() {
       assert.isFalse(sendButton.classList.contains('has-counter'));
       assert.isFalse(convertBanner.classList.contains('hide'),
         'conversion banner is shown for sms');
-      assert.equal(convertBannerText.textContent, 'converted-to-sms',
-        'conversion banner has sms message');
+      assert.ok(
+        localize.calledWith(convertBannerText, 'converted-to-sms'),
+        'conversion banner has sms message'
+      );
 
       this.sinon.clock.tick(2999);
       assert.isFalse(convertBanner.classList.contains('hide'),
@@ -682,8 +741,11 @@ suite('thread_ui.js >', function() {
       ThreadUI.updateCounter();
       assert.isFalse(convertBanner.classList.contains('hide'),
         'conversion banner is shown for mms');
-      assert.equal(convertBannerText.textContent, 'converted-to-mms',
-        'conversion banner has mms message');
+      assert.ok(
+        localize.calledWith(convertBannerText, 'converted-to-mms'),
+        'conversion banner has mms message'
+      );
+      localize.reset();
 
       this.sinon.clock.tick(2999);
       assert.isFalse(convertBanner.classList.contains('hide'),
@@ -698,8 +760,11 @@ suite('thread_ui.js >', function() {
 
       assert.isFalse(convertBanner.classList.contains('hide'),
         'conversion banner is shown for sms');
-      assert.equal(convertBannerText.textContent, 'converted-to-sms',
-        'conversion banner has sms message');
+      assert.ok(
+        localize.calledWith(convertBannerText, 'converted-to-sms'),
+        'conversion banner has sms message'
+      );
+      localize.reset();
 
       this.sinon.clock.tick(2999);
       assert.isFalse(convertBanner.classList.contains('hide'),
@@ -720,8 +785,11 @@ suite('thread_ui.js >', function() {
       ThreadUI.updateCounter();
       assert.isFalse(convertBanner.classList.contains('hide'),
         'conversion banner is shown for mms');
-      assert.equal(convertBannerText.textContent, 'converted-to-mms',
-        'conversion banner has mms message');
+      assert.ok(
+        localize.calledWith(convertBannerText, 'converted-to-mms'),
+        'conversion banner has mms message'
+      );
+      localize.reset();
 
       this.sinon.clock.tick(1500);
       assert.isFalse(convertBanner.classList.contains('hide'),
@@ -732,8 +800,11 @@ suite('thread_ui.js >', function() {
 
       assert.isFalse(convertBanner.classList.contains('hide'),
         'conversion banner is shown for sms');
-      assert.equal(convertBannerText.textContent, 'converted-to-sms',
-        'conversion banner has sms message');
+      assert.ok(
+        localize.calledWith(convertBannerText, 'converted-to-sms'),
+        'conversion banner has sms message'
+      );
+      localize.reset();
 
       // long enough to go past the previous timeout 1500 + 2000 > 3000
       this.sinon.clock.tick(2000);
@@ -744,6 +815,83 @@ suite('thread_ui.js >', function() {
       assert.isTrue(convertBanner.classList.contains('hide'),
         'conversion banner is hidden at 3 seconds');
 
+    });
+  });
+
+  suite('Recipient Assimiliation', function() {
+
+    setup(function() {
+      this.sinon.spy(ThreadUI.recipients, 'visible');
+      this.sinon.spy(ThreadUI.recipients, 'add');
+
+      Threads.set(1, {
+        participants: ['999']
+      });
+    });
+
+    teardown(function() {
+      Threads.delete(1);
+      window.location.hash = '';
+    });
+
+    suite('New Conversation', function() {
+      var node;
+
+      setup(function() {
+        window.location.hash = '#new';
+
+        node = document.createElement('span');
+        node.isPlaceholder = true;
+        node.textContent = '999';
+
+        ThreadUI.recipientsList.appendChild(node);
+      });
+
+      teardown(function() {
+        ThreadUI.recipientsList.removeChild(node);
+      });
+
+      test('Will assimilate recipients', function() {
+        var visible, add;
+
+        ThreadUI.assimilateRecipients();
+
+        visible = ThreadUI.recipients.visible;
+        add = ThreadUI.recipients.add;
+
+        assert.ok(visible.called);
+        assert.equal(visible.args[0][0], 'singleline');
+        assert.include(visible.args[0][1], 'refocus');
+        assert.include(visible.args[0][1], 'noPreserve');
+        assert.equal(visible.args[0][1].refocus, ThreadUI.input);
+        assert.isTrue(visible.args[0][1].noPreserve);
+
+        assert.ok(add.called);
+        assert.deepEqual(add.args[0][0], {
+          name: '999',
+          number: '999',
+          source: 'manual'
+        });
+      });
+    });
+
+    suite('Existing Conversation', function() {
+
+      setup(function() {
+        window.location.hash = '#thread=1';
+      });
+
+      test('Will not assimilate recipients ', function() {
+        var visible, add;
+
+        ThreadUI.assimilateRecipients();
+
+        visible = ThreadUI.recipients.visible;
+        add = ThreadUI.recipients.add;
+
+        assert.isFalse(visible.called);
+        assert.isFalse(add.called);
+      });
     });
   });
 
@@ -900,6 +1048,237 @@ suite('thread_ui.js >', function() {
     });
   });
 
+  suite('getMessageContainer >', function() {
+    var lastYear, yesterday, today;
+    var fiveMinAgo, elevenMinAgo, oneHourAgo, oneHourFiveMinAgo;
+
+    setup(function() {
+      today = new Date(2013, 11, 31, 23, 59);
+      this.sinon.useFakeTimers(+today);
+
+      lastYear = new Date(2012, 11, 31);
+      yesterday = new Date(2013, 11, 30, 12, 0);
+      fiveMinAgo = new Date(2013, 11, 31, 23, 54);
+      elevenMinAgo = new Date(2013, 11, 31, 23, 48);
+      oneHourAgo = new Date(2013, 11, 31, 22, 59);
+      oneHourFiveMinAgo = new Date(2013, 11, 31, 22, 54);
+    });
+
+    suite('last message block alone today >', function() {
+      var subject;
+
+      setup(function() {
+        subject = ThreadUI.getMessageContainer(+fiveMinAgo);
+      });
+
+      test('has both the date and the time', function() {
+        var header = subject.previousElementSibling;
+        assert.notEqual(header.dataset.timeOnly, 'true');
+      });
+    });
+
+    suite('last message block with another block today >', function() {
+      var subject;
+      setup(function() {
+        ThreadUI.getMessageContainer(+elevenMinAgo);
+        subject = ThreadUI.getMessageContainer(+fiveMinAgo);
+      });
+
+      test('has only the time', function() {
+        assert.equal(subject.previousElementSibling.dataset.timeOnly, 'true');
+      });
+    });
+
+    suite('2 recent messages, different days >', function() {
+      var firstContainer, secondContainer;
+      setup(function() {
+        firstContainer = ThreadUI.getMessageContainer(Date.now());
+        // 5 minutes to be next day, would be the same container if same day
+        this.sinon.clock.tick(5 * 60 * 1000);
+
+        secondContainer = ThreadUI.getMessageContainer(Date.now());
+      });
+
+      test('different containers', function() {
+        assert.notEqual(secondContainer, firstContainer);
+      });
+
+      test('second container has both the date and the time', function() {
+        var secondHeader = secondContainer.previousElementSibling;
+        assert.notEqual(secondHeader.dataset.timeOnly, 'true');
+      });
+    });
+
+    suite('2 recent messages, same day, 15 minutes interval >', function() {
+      var firstContainer, secondContainer, firstTimestamp;
+
+      setup(function() {
+        this.sinon.clock.tick(15 * 60 * 1000); // 15 minutes to be the next day
+        firstContainer = ThreadUI.getMessageContainer(Date.now());
+        firstTimestamp = firstContainer.dataset.timestamp;
+        this.sinon.clock.tick(15 * 60 * 1000);
+
+        secondContainer = ThreadUI.getMessageContainer(Date.now());
+      });
+
+      test('different containers', function() {
+        assert.notEqual(secondContainer, firstContainer);
+      });
+
+      test('has only the time', function() {
+        var secondHeader = secondContainer.previousElementSibling;
+        assert.equal(secondHeader.dataset.timeOnly, 'true');
+      });
+
+      test('first container has now a start-of-the-day timestamp', function() {
+        assert.notEqual(firstContainer.dataset.timestamp, firstTimestamp);
+      });
+    });
+
+    suite('insert one non-last-message block at the end >', function() {
+      var lastYearContainer, yesterdayContainer;
+
+      setup(function() {
+        lastYearContainer = ThreadUI.getMessageContainer(+lastYear);
+        yesterdayContainer = ThreadUI.getMessageContainer(+yesterday);
+      });
+
+      test('should have 2 blocks', function() {
+        assert.equal(ThreadUI.container.querySelectorAll('header').length, 2);
+        assert.equal(ThreadUI.container.querySelectorAll('ul').length, 2);
+      });
+
+      test('should be in the correct order', function() {
+        var containers = ThreadUI.container.querySelectorAll('ul');
+        var expectedContainers = [
+          lastYearContainer,
+          yesterdayContainer
+        ];
+
+        expectedContainers.forEach(function(container, index) {
+          assert.equal(container, containers[index]);
+        });
+      });
+
+    });
+
+    suite('insert one non-last-message block at the end of a 2-item list >',
+      function() {
+
+      var lastYearContainer, yesterdayContainer, twoDaysAgoContainer;
+
+      setup(function() {
+        lastYearContainer = ThreadUI.getMessageContainer(+lastYear);
+        var twoDaysAgo = new Date(2013, 11, 29);
+        twoDaysAgoContainer = ThreadUI.getMessageContainer(+twoDaysAgo);
+        yesterdayContainer = ThreadUI.getMessageContainer(+yesterday);
+      });
+
+      test('should have 3 blocks', function() {
+        assert.equal(ThreadUI.container.querySelectorAll('header').length, 3);
+        assert.equal(ThreadUI.container.querySelectorAll('ul').length, 3);
+      });
+
+      test('should be in the correct order', function() {
+        var containers = ThreadUI.container.querySelectorAll('ul');
+        var expectedContainers = [
+          lastYearContainer,
+          twoDaysAgoContainer,
+          yesterdayContainer
+        ];
+
+        expectedContainers.forEach(function(container, index) {
+          assert.equal(container, containers[index]);
+        });
+      });
+
+    });
+
+    suite('4 blocks suite >', function() {
+      var lastYearContainer, yesterdayContainer;
+      var elevenMinContainer, fiveMinContainer;
+      var oneHourContainer, oneHourFiveContainer;
+
+      setup(function() {
+        yesterdayContainer = ThreadUI.getMessageContainer(+yesterday);
+        fiveMinContainer = ThreadUI.getMessageContainer(+fiveMinAgo);
+        // this one is asked after the last message block to see if the
+        // header are updated
+        elevenMinContainer = ThreadUI.getMessageContainer(+elevenMinAgo);
+        oneHourContainer = ThreadUI.getMessageContainer(+oneHourAgo);
+        oneHourFiveContainer = ThreadUI.getMessageContainer(+oneHourFiveMinAgo);
+        // this one requested at the end to check that we correctly put it at
+        // the start
+        lastYearContainer = ThreadUI.getMessageContainer(+lastYear);
+      });
+
+      test('should have 4 blocks', function() {
+        assert.equal(ThreadUI.container.querySelectorAll('header').length, 4);
+        assert.equal(ThreadUI.container.querySelectorAll('ul').length, 4);
+      });
+
+      test('should be in the correct order', function() {
+        var containers = ThreadUI.container.querySelectorAll('ul');
+        var expectedContainers = [
+          lastYearContainer,
+          yesterdayContainer,
+          elevenMinContainer,
+          fiveMinContainer
+        ];
+
+        expectedContainers.forEach(function(container, index) {
+          assert.equal(container, containers[index]);
+        });
+      });
+
+      test('some containers are the same', function() {
+        assert.equal(oneHourContainer, elevenMinContainer);
+        assert.equal(oneHourFiveContainer, elevenMinContainer);
+      });
+
+      test('last message block should not show the date', function() {
+        // because there is another earlier block the same day
+        var header = fiveMinContainer.previousElementSibling;
+        assert.equal(header.dataset.timeOnly, 'true');
+      });
+
+      test('adding a new message in the last message block', function() {
+        var twoMinAgo = new Date(2013, 11, 31, 23, 57);
+        var twoMinContainer = ThreadUI.getMessageContainer(+twoMinAgo);
+        assert.equal(twoMinContainer, fiveMinContainer);
+      });
+
+      suite('adding a new message for yesterday >', function() {
+        var container;
+        var oldHeaderTimestamp;
+
+        setup(function() {
+          var header = yesterdayContainer.previousElementSibling;
+          oldHeaderTimestamp = header.dataset.time;
+
+          var yesterdayEarlier = new Date(+yesterday);
+          yesterdayEarlier.setHours(5, 5);
+          container = ThreadUI.getMessageContainer(+yesterdayEarlier);
+        });
+
+        test('still 4 blocks', function() {
+          assert.equal(ThreadUI.container.querySelectorAll('header').length, 4);
+        });
+
+        test('same container as the existing yesterday container', function() {
+          assert.equal(container, yesterdayContainer);
+        });
+
+        test('the time header was updated', function() {
+          var header = container.previousElementSibling;
+          var headerTimestamp = header.dataset.time;
+          assert.notEqual(headerTimestamp, oldHeaderTimestamp);
+        });
+      });
+    });
+
+  });
+
   suite('appendMessage removes old message', function() {
     setup(function() {
       this.targetMsg = {
@@ -953,6 +1332,7 @@ suite('thread_ui.js >', function() {
   });
 
   suite('not-downloaded', function() {
+    var localize;
     var ONE_DAY_TIME = 24 * 60 * 60 * 1000;
     var testMessages = [{
       id: 1,
@@ -1005,6 +1385,7 @@ suite('thread_ui.js >', function() {
       this.sinon.stub(MessageManager, 'retrieveMMS', function() {
         return {};
       });
+      localize = this.sinon.spy(navigator.mozL10n, 'localize');
     });
     suite('pending message', function() {
       var message = testMessages[0];
@@ -1016,6 +1397,7 @@ suite('thread_ui.js >', function() {
         element = document.getElementById('message-' + message.id);
         notDownloadedMessage = element.querySelector('.not-downloaded-message');
         button = element.querySelector('button');
+
       });
       test('element has correct data-message-id', function() {
         assert.equal(element.dataset.messageId, message.id);
@@ -1033,8 +1415,12 @@ suite('thread_ui.js >', function() {
         assert.isTrue(element.classList.contains('pending'));
       });
       test('message is correct', function() {
-        assert.equal(notDownloadedMessage.textContent,
-          'not-downloaded-mms{"date":"date_stub"}');
+        assert.equal(notDownloadedMessage.dataset.l10nId,
+          'not-downloaded-mms',
+          'localization id set correctly');
+        assert.equal(notDownloadedMessage.dataset.l10nArgs,
+          '{"date":"date_stub"}',
+          'localization arguments set correctly');
       });
       test('date is correctly determined', function() {
         assert.equal(Utils.date.format.localeFormat.args[0][0],
@@ -1043,7 +1429,7 @@ suite('thread_ui.js >', function() {
           'dateTimeFormat_%x');
       });
       test('button text is correct', function() {
-        assert.equal(button.textContent, 'downloading');
+        assert.equal(button.dataset.l10nId, 'downloading');
       });
       suite('clicking', function() {
         setup(function() {
@@ -1083,8 +1469,12 @@ suite('thread_ui.js >', function() {
         assert.isFalse(element.classList.contains('pending'));
       });
       test('message is correct', function() {
-        assert.equal(notDownloadedMessage.textContent,
-          'not-downloaded-mms{"date":"date_stub"}');
+        assert.equal(notDownloadedMessage.dataset.l10nId,
+          'not-downloaded-mms',
+          'localization id set correctly');
+        assert.equal(notDownloadedMessage.dataset.l10nArgs,
+          '{"date":"date_stub"}',
+          'localization arguments set correctly');
       });
       test('date is correctly determined', function() {
         assert.equal(Utils.date.format.localeFormat.args[0][0],
@@ -1093,16 +1483,17 @@ suite('thread_ui.js >', function() {
           'dateTimeFormat_%x');
       });
       test('button text is correct', function() {
-        assert.equal(button.textContent, 'download');
+        assert.equal(button.dataset.l10nId, 'download');
       });
       suite('clicking', function() {
         setup(function() {
+          localize.reset();
           ThreadUI.handleMessageClick({
             target: button
           });
         });
         test('changes download text', function() {
-          assert.equal(button.textContent, 'downloading');
+          assert.ok(localize.calledWith(button, 'downloading'));
         });
         test('error class absent', function() {
           assert.isFalse(element.classList.contains('error'));
@@ -1115,6 +1506,7 @@ suite('thread_ui.js >', function() {
         });
         suite('response error', function() {
           setup(function() {
+            localize.reset();
             MessageManager.retrieveMMS.returnValues[0].onerror();
           });
           test('error class present', function() {
@@ -1124,7 +1516,7 @@ suite('thread_ui.js >', function() {
             assert.isFalse(element.classList.contains('pending'));
           });
           test('changes download text', function() {
-            assert.equal(button.textContent, 'download');
+            assert.ok(localize.calledWith(button, 'download'));
           });
         });
         suite('response success', function() {
@@ -1165,8 +1557,12 @@ suite('thread_ui.js >', function() {
         assert.isFalse(element.classList.contains('pending'));
       });
       test('message is correct', function() {
-        assert.equal(notDownloadedMessage.textContent,
-          'not-downloaded-mms{"date":"date_stub"}');
+        assert.equal(notDownloadedMessage.dataset.l10nId,
+          'not-downloaded-mms',
+          'localization id set correctly');
+        assert.equal(notDownloadedMessage.dataset.l10nArgs,
+          '{"date":"date_stub"}',
+          'localization arguments set correctly');
       });
       test('date is correctly determined', function() {
         assert.equal(Utils.date.format.localeFormat.args[0][0],
@@ -1175,16 +1571,17 @@ suite('thread_ui.js >', function() {
           'dateTimeFormat_%x');
       });
       test('button text is correct', function() {
-        assert.equal(button.textContent, 'download');
+        assert.equal(button.dataset.l10nId, 'download');
       });
       suite('clicking', function() {
         setup(function() {
+          localize.reset();
           ThreadUI.handleMessageClick({
             target: button
           });
         });
         test('changes download text', function() {
-          assert.equal(button.textContent, 'downloading');
+          assert.ok(localize.calledWith(button, 'downloading'));
         });
         test('error class absent', function() {
           assert.isFalse(element.classList.contains('error'));
@@ -1197,6 +1594,7 @@ suite('thread_ui.js >', function() {
         });
         suite('response error', function() {
           setup(function() {
+            localize.reset();
             MessageManager.retrieveMMS.returnValues[0].onerror();
           });
           test('error class present', function() {
@@ -1206,7 +1604,7 @@ suite('thread_ui.js >', function() {
             assert.isFalse(element.classList.contains('pending'));
           });
           test('changes download text', function() {
-            assert.equal(button.textContent, 'download');
+            assert.ok(localize.calledWith(button, 'download'));
           });
         });
         suite('response success', function() {
@@ -1248,8 +1646,12 @@ suite('thread_ui.js >', function() {
         assert.isFalse(element.classList.contains('pending'));
       });
       test('message is correct', function() {
-        assert.equal(notDownloadedMessage.textContent,
-          'expired-mms{"date":"date_stub"}');
+        assert.equal(notDownloadedMessage.dataset.l10nId,
+          'expired-mms',
+          'localization id set correctly');
+        assert.equal(notDownloadedMessage.dataset.l10nArgs,
+          '{"date":"date_stub"}',
+          'localization arguments set correctly');
       });
       test('date is correctly determined', function() {
         assert.equal(Utils.date.format.localeFormat.args[0][0],
@@ -1299,6 +1701,7 @@ suite('thread_ui.js >', function() {
       timestamp: new Date(Date.now() - 100000),
       expiryDate: new Date(Date.now())
     }];
+    var localize;
     setup(function() {
       this.sinon.stub(Utils.date.format, 'localeFormat', function() {
         return 'date_stub';
@@ -1306,6 +1709,7 @@ suite('thread_ui.js >', function() {
       this.sinon.stub(MessageManager, 'retrieveMMS', function() {
         return {};
       });
+      localize = this.sinon.spy(navigator.mozL10n, 'localize');
     });
 
     suite('no attachment message', function() {
@@ -1330,8 +1734,9 @@ suite('thread_ui.js >', function() {
         assert.isFalse(element.classList.contains('pending'));
       });
       test('message is correct', function() {
-        assert.equal(noAttachmentMessage.textContent,
-          'no-attachment-text');
+        assert.ok(
+          localize.calledWith(noAttachmentMessage, 'no-attachment-text')
+        );
       });
       suite('clicking', function() {
         setup(function() {
@@ -1367,8 +1772,9 @@ suite('thread_ui.js >', function() {
         assert.isFalse(element.classList.contains('pending'));
       });
       test('message is correct', function() {
-        assert.equal(noAttachmentMessage.textContent,
-          'no-attachment-text');
+        assert.ok(
+          localize.calledWith(noAttachmentMessage, 'no-attachment-text')
+        );
       });
       suite('clicking', function() {
         setup(function() {
@@ -1482,12 +1888,12 @@ suite('thread_ui.js >', function() {
   suite('Actions on the links >', function() {
     var messageId = 23, link, phone = '123123123';
     setup(function() {
-      this.sinon.spy(LinkActionHandler, 'handleTapEvent');
-      this.sinon.spy(LinkActionHandler, 'handleLongPressEvent');
+      this.sinon.spy(LinkActionHandler, 'onClick');
+      this.sinon.spy(LinkActionHandler, 'onContextMenu');
 
       this.sinon.stub(LinkHelper, 'searchAndLinkClickableData', function() {
-        return '<a data-phonenumber="' + phone +
-        '" data-action="phone-link">' + phone + '</a>';
+        return '<a data-dial="' + phone +
+        '" data-action="dial-link">' + phone + '</a>';
       });
 
       ThreadUI.appendMessage({
@@ -1511,8 +1917,8 @@ suite('thread_ui.js >', function() {
       // In this case we are checking the 'click' action on a link
       link.click();
       // This 'click' was handled properly?
-      assert.ok(LinkActionHandler.handleTapEvent.called);
-      assert.isFalse(LinkActionHandler.handleLongPressEvent.called);
+      assert.ok(LinkActionHandler.onClick.called);
+      assert.isFalse(LinkActionHandler.onContextMenu.called);
     });
 
     test(' "contextmenu"', function() {
@@ -1520,15 +1926,13 @@ suite('thread_ui.js >', function() {
         'bubbles': true,
         'cancelable': true
       });
-      this.sinon.spy(contextMenuEvent, 'stopPropagation');
       // Dispatch custom event for testing long press
       link.dispatchEvent(contextMenuEvent);
-      // Was the propagation stopped?
-      assert.ok(contextMenuEvent.stopPropagation.called);
-      assert.ok(contextMenuEvent.defaultPrevented);
+      // The assertions that were removed from this
+      // test were relocated to link_action_handler_test.js
       // This 'context-menu' was handled properly?
-      assert.isFalse(LinkActionHandler.handleTapEvent.called);
-      assert.ok(LinkActionHandler.handleLongPressEvent.called);
+      assert.isFalse(LinkActionHandler.onClick.called);
+      assert.ok(LinkActionHandler.onContextMenu.called);
     });
 
     test(' "contextmenu" after "click"', function() {
@@ -1541,11 +1945,10 @@ suite('thread_ui.js >', function() {
       // After clicking, we dispatch a context menu
       link.dispatchEvent(contextMenuEvent);
       // Are 'click' and 'contextmenu' working properly?
-      assert.ok(LinkActionHandler.handleTapEvent.called);
-      assert.ok(LinkActionHandler.handleLongPressEvent.called);
+      assert.ok(LinkActionHandler.onClick.called);
+      assert.ok(LinkActionHandler.onContextMenu.called);
     });
   });
-
 
   suite('Message resending UI', function() {
     setup(function() {
@@ -1680,7 +2083,6 @@ suite('thread_ui.js >', function() {
   });
 
   suite('Render Contact', function() {
-
     test('Rendered Contact "givenName familyName"', function() {
       var ul = document.createElement('ul');
       var contact = new MockContact();
@@ -1773,7 +2175,8 @@ suite('thread_ui.js >', function() {
       });
       html = ul.firstElementChild.innerHTML;
 
-      assert.ok(html.contains('Mobile | +346578888888'));
+      assert.ok(html.contains('<span data-l10n-id="Mobile">Mobile</span> | ' +
+        '+346578888888'));
     });
 
     test('Rendered Contact highlighted "type | number"', function() {
@@ -1792,9 +2195,10 @@ suite('thread_ui.js >', function() {
       });
       html = ul.firstElementChild.innerHTML;
 
-      assert.ok(
-        html.contains('Mobile | +<span class="highlight">346578888888</span>')
-      );
+      assert.ok(html.contains(
+        '<span data-l10n-id="Mobile">Mobile</span> | ' +
+        '+<span class="highlight">346578888888</span>'
+      ));
     });
 
     test('Rendered Contact "type | carrier, number"', function() {
@@ -1811,7 +2215,10 @@ suite('thread_ui.js >', function() {
       });
       html = ul.firstElementChild.innerHTML;
 
-      assert.ok(html.contains('Mobile | TEF, +346578888888'));
+      assert.ok(html.contains(
+        '<span data-l10n-id="Mobile">Mobile</span> | ' +
+        'TEF, +346578888888'
+      ));
     });
 
     test('Rendered Contact highlighted "type | carrier, number"', function() {
@@ -1830,7 +2237,8 @@ suite('thread_ui.js >', function() {
 
       assert.ok(
         html.contains(
-          'Mobile | TEF, +<span class="highlight">346578888888</span>'
+          '<span data-l10n-id="Mobile">Mobile</span> | ' +
+          'TEF, +<span class="highlight">346578888888</span>'
         )
       );
     });
@@ -1961,21 +2369,22 @@ suite('thread_ui.js >', function() {
 
   suite('Header Actions/Display', function() {
     setup(function() {
+      Threads.delete(1);
       window.location.hash = '';
-      MockActivityPicker.call.mSetup();
+      MockActivityPicker.dial.mSetup();
       MockOptionMenu.mSetup();
     });
 
     teardown(function() {
       Threads.delete(1);
       window.location.hash = '';
-      MockActivityPicker.call.mTeardown();
+      MockActivityPicker.dial.mTeardown();
       MockOptionMenu.mTeardown();
     });
 
     suite('OptionMenu', function() {
 
-      suite('activateContact', function() {
+      suite('prompt', function() {
         test('Single known', function() {
 
           Threads.set(1, {
@@ -1984,17 +2393,17 @@ suite('thread_ui.js >', function() {
 
           window.location.hash = '#thread=1';
 
-          ThreadUI.activateContact({
+          ThreadUI.prompt({
             number: '999',
             isContact: true
           });
 
           assert.equal(MockOptionMenu.calls.length, 0);
-          assert.ok(MockActivityPicker.call.called);
-          assert.equal(MockActivityPicker.call.calledWith, '999');
+          assert.ok(MockActivityPicker.dial.called);
+          assert.equal(MockActivityPicker.dial.calledWith, '999');
         });
 
-        test('Single unknown', function() {
+        test('Single unknown (phone)', function() {
 
           Threads.set(1, {
             participants: ['999']
@@ -2002,29 +2411,71 @@ suite('thread_ui.js >', function() {
 
           window.location.hash = '#thread=1';
 
-          ThreadUI.activateContact({
+          ThreadUI.prompt({
             number: '999',
             isContact: false
           });
 
-          var items = MockOptionMenu.calls[0].items;
-
           assert.equal(MockOptionMenu.calls.length, 1);
+
+          var call = MockOptionMenu.calls[0];
+          var items = call.items;
+
+          // Ensures that the OptionMenu was given
+          // the phone number to diplay
+          assert.equal(call.section, '999');
+
           assert.equal(items.length, 4);
 
           // The first item is a "call" option
-          assert.equal(items[0].name, 'call');
+          assert.equal(items[0].l10nId, 'call');
 
           // The second item is a "createNewContact" option
-          assert.equal(items[1].name, 'createNewContact');
+          assert.equal(items[1].l10nId, 'createNewContact');
 
           // The third item is a "addToExistingContact" option
-          assert.equal(items[2].name, 'addToExistingContact');
+          assert.equal(items[2].l10nId, 'addToExistingContact');
 
           // The fourth and last item is a "cancel" option
-          assert.equal(items[3].name, 'cancel');
+          assert.equal(items[3].l10nId, 'cancel');
         });
 
+        test('Single unknown (email)', function() {
+
+          Threads.set(1, {
+            participants: ['999']
+          });
+
+          window.location.hash = '#thread=1';
+
+          ThreadUI.prompt({
+            email: 'a@b.com',
+            isContact: false
+          });
+
+          assert.equal(MockOptionMenu.calls.length, 1);
+
+          var call = MockOptionMenu.calls[0];
+          var items = call.items;
+
+          // Ensures that the OptionMenu was given
+          // the phone number to diplay
+          assert.equal(call.section, 'a@b.com');
+
+          assert.equal(items.length, 4);
+
+          // The first item is a "call" option
+          assert.equal(items[0].l10nId, 'sendEmail');
+
+          // The second item is a "createNewContact" option
+          assert.equal(items[1].l10nId, 'createNewContact');
+
+          // The third item is a "addToExistingContact" option
+          assert.equal(items[2].l10nId, 'addToExistingContact');
+
+          // The fourth and last item is a "cancel" option
+          assert.equal(items[3].l10nId, 'cancel');
+        });
         test('Multiple known', function() {
 
           Threads.set(1, {
@@ -2033,24 +2484,30 @@ suite('thread_ui.js >', function() {
 
           window.location.hash = '#thread=1';
 
-          ThreadUI.activateContact({
+          ThreadUI.prompt({
             number: '999',
             isContact: true
           });
 
-          var items = MockOptionMenu.calls[0].items;
-
           assert.equal(MockOptionMenu.calls.length, 1);
+
+          var call = MockOptionMenu.calls[0];
+          var items = call.items;
+
+          // Ensures that the OptionMenu was given
+          // the phone number to diplay
+          assert.equal(call.section, '999');
+
           assert.equal(items.length, 3);
 
           // The first item is a "call" option
-          assert.equal(items[0].name, 'call');
+          assert.equal(items[0].l10nId, 'call');
 
           // The second item is a "send message" option
-          assert.equal(items[1].name, 'sendMessage');
+          assert.equal(items[1].l10nId, 'sendMessage');
 
           // The third and last item is a "cancel" option
-          assert.equal(items[2].name, 'cancel');
+          assert.equal(items[2].l10nId, 'cancel');
         });
 
         test('Multiple unknown', function() {
@@ -2061,30 +2518,36 @@ suite('thread_ui.js >', function() {
 
           window.location.hash = '#thread=1';
 
-          ThreadUI.activateContact({
+          ThreadUI.prompt({
             number: '999',
             isContact: false
           });
 
-          var items = MockOptionMenu.calls[0].items;
-
           assert.equal(MockOptionMenu.calls.length, 1);
+
+          var call = MockOptionMenu.calls[0];
+          var items = call.items;
+
+          // Ensures that the OptionMenu was given
+          // the phone number to diplay
+          assert.equal(call.section, '999');
+
           assert.equal(items.length, 5);
 
           // The first item is a "call" option
-          assert.equal(items[0].name, 'call');
+          assert.equal(items[0].l10nId, 'call');
 
           // The second item is a "sendMessage" option
-          assert.equal(items[1].name, 'sendMessage');
+          assert.equal(items[1].l10nId, 'sendMessage');
 
           // The third item is a "createNewContact" option
-          assert.equal(items[2].name, 'createNewContact');
+          assert.equal(items[2].l10nId, 'createNewContact');
 
           // The fourth item is a "addToExistingContact" option
-          assert.equal(items[3].name, 'addToExistingContact');
+          assert.equal(items[3].l10nId, 'addToExistingContact');
 
           // The fifth and last item is a "cancel" option
-          assert.equal(items[4].name, 'cancel');
+          assert.equal(items[4].l10nId, 'cancel');
         });
       });
 
@@ -2092,23 +2555,22 @@ suite('thread_ui.js >', function() {
         test('Single known', function() {
 
           Threads.set(1, {
-            participants: ['999']
+            participants: ['+12125559999']
           });
 
           window.location.hash = '#thread=1';
 
+
           ThreadUI.headerText.dataset.isContact = true;
-          ThreadUI.headerText.dataset.number = '999';
+          ThreadUI.headerText.dataset.number = '+12125559999';
 
           ThreadUI.onHeaderActivation();
-
-          var calls = MockOptionMenu.calls;
 
           // Does not initiate an OptionMenu
           assert.equal(MockOptionMenu.calls.length, 0);
 
           // Does initiate a "call" activity
-          assert.equal(MockActivityPicker.call.called, 1);
+          assert.equal(MockActivityPicker.dial.called, 1);
         });
 
         test('Single unknown', function() {
@@ -2196,16 +2658,18 @@ suite('thread_ui.js >', function() {
     });
 
     suite('Multi participant', function() {
+      var localize;
       setup(function() {
         window.location.hash = '';
-        MockActivityPicker.call.mSetup();
+        MockActivityPicker.dial.mSetup();
         MockOptionMenu.mSetup();
+        localize = this.sinon.spy(navigator.mozL10n, 'localize');
       });
 
       teardown(function() {
         Threads.delete(1);
         window.location.hash = '';
-        MockActivityPicker.call.mTeardown();
+        MockActivityPicker.dial.mTeardown();
         MockOptionMenu.mTeardown();
       });
 
@@ -2224,8 +2688,8 @@ suite('thread_ui.js >', function() {
 
           ThreadUI.onHeaderActivation();
 
-          assert.equal(MockActivityPicker.call.called, false);
-          assert.equal(MockActivityPicker.call.calledWith, null);
+          assert.equal(MockActivityPicker.dial.called, false);
+          assert.equal(MockActivityPicker.dial.calledWith, null);
         });
 
         test('DOES NOT Invoke Options', function() {
@@ -2254,9 +2718,9 @@ suite('thread_ui.js >', function() {
             // Change to #group-view (per ThreadUI.onHeaderActivation())
             window.onhashchange = function() {
               assert.equal(window.location.hash, '#group-view');
-              assert.equal(
-                ThreadUI.headerText.textContent, 'participant{"n":2}'
-              );
+              assert.deepEqual(localize.args[0], [
+                ThreadUI.headerText, 'participant', {n: 2}
+              ]);
               // View should not go back to thread view when header is
               // activated in group-view
               ThreadUI.onHeaderActivation();
@@ -2343,7 +2807,6 @@ suite('thread_ui.js >', function() {
 
       });
     });
-
   });
 
   suite('Sending Behavior (onSendClick)', function() {
@@ -2406,7 +2869,6 @@ suite('thread_ui.js >', function() {
       MessageManager.sendMMS.mTeardown();
       MessageManager.sendSMS.mTeardown();
     });
-
 
     test('SMS, 1 Recipient, stays in view', function() {
       ThreadUI.recipients.add({
@@ -2481,6 +2943,17 @@ suite('thread_ui.js >', function() {
     });
   });
 
+  suite('Contact Picker Behavior(contactPickButton)', function() {
+    setup(function() {
+      this.sinon.spy(ThreadUI, 'assimilateRecipients');
+    });
+
+    test('assimilate called after mousedown on picker button', function() {
+      ThreadUI.contactPickButton.dispatchEvent(new CustomEvent('mousedown'));
+      assert.ok(ThreadUI.assimilateRecipients.called);
+    });
+  });
+
   suite('setMessageBody', function() {
     setup(function() {
       this.sinon.stub(Compose, 'clear');
@@ -2524,6 +2997,47 @@ suite('thread_ui.js >', function() {
       test('calls focus', function() {
         assert.ok(Compose.focus.called);
       });
+    });
+  });
+
+  suite('recipient handling yields correct header', function() {
+    var localize;
+    setup(function() {
+      location.hash = '#new';
+      localize = this.sinon.spy(navigator.mozL10n, 'localize');
+    });
+
+    teardown(function() {
+      location.hash = '';
+    });
+
+    test('no recipients', function() {
+      ThreadUI.updateComposerHeader();
+      assert.deepEqual(localize.args[0], [
+        ThreadUI.headerText, 'newMessage'
+      ]);
+    });
+
+    test('add one recipient', function() {
+      ThreadUI.recipients.add({
+        number: '999'
+      });
+      assert.deepEqual(localize.args[0], [
+        ThreadUI.headerText, 'recipient', {n: 1}
+      ]);
+    });
+
+    test('add two recipients', function() {
+      ThreadUI.recipients.add({
+        number: '999'
+      });
+      ThreadUI.recipients.add({
+        number: '888'
+      });
+      assert.ok(localize.calledTwice);
+      assert.deepEqual(localize.args[1], [
+        ThreadUI.headerText, 'recipient', {n: 2}
+      ]);
     });
   });
 

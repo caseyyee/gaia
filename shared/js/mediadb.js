@@ -621,11 +621,6 @@ var MediaDB = (function() {
     function initDeviceStorage() {
       var details = media.details;
 
-      // Get the composite storage object that agregates all files of the
-      // specified media type. We use this object when scanning and when
-      // retrieving files using their fully-qualifed names.
-      media.storage = navigator.getDeviceStorage(mediaType);
-
       // Get the individual device storage objects, so that we can listen
       // for events on the different volumes separately.
       details.storages = navigator.getDeviceStorages(mediaType);
@@ -885,7 +880,8 @@ var MediaDB = (function() {
       if (this.state !== MediaDB.READY)
         throw Error('MediaDB is not ready. State: ' + this.state);
 
-      var getRequest = this.storage.get(filename);
+      var storage = navigator.getDeviceStorage(this.mediaType);
+      var getRequest = storage.get(filename);
       getRequest.onsuccess = function() {
         callback(getRequest.result);
       };
@@ -906,7 +902,8 @@ var MediaDB = (function() {
       if (this.state !== MediaDB.READY)
         throw Error('MediaDB is not ready. State: ' + this.state);
 
-      this.storage.delete(filename).onerror = function(e) {
+      var storage = navigator.getDeviceStorage(this.mediaType);
+      storage.delete(filename).onerror = function(e) {
         console.error('MediaDB.deleteFile(): Failed to delete', filename,
                       'from DeviceStorage:', e.target.error);
       };
@@ -923,13 +920,16 @@ var MediaDB = (function() {
         throw Error('MediaDB is not ready. State: ' + this.state);
 
       var media = this;
+      // Refetch the default storage area, since the user can change it
+      // in the settings app.
+      var storage = navigator.getDeviceStorage(media.mediaType);
 
       // Delete any existing file by this name, then save the file.
-      var deletereq = media.storage.delete(filename);
+      var deletereq = storage.delete(filename);
       deletereq.onsuccess = deletereq.onerror = save;
 
       function save() {
-        var request = media.storage.addNamed(file, filename);
+        var request = storage.addNamed(file, filename);
         request.onerror = function() {
           console.error('MediaDB: Failed to store', filename,
                         'in DeviceStorage:', request.error);
@@ -1179,7 +1179,8 @@ var MediaDB = (function() {
       if (this.state !== MediaDB.READY)
         throw Error('MediaDB is not ready. State: ' + this.state);
 
-      var freereq = this.storage.freeSpace();
+      var storage = navigator.getDeviceStorage(this.mediaType);
+      var freereq = storage.freeSpace();
       freereq.onsuccess = function() {
         callback(freereq.result);
       };
@@ -1212,6 +1213,8 @@ var MediaDB = (function() {
 
   /* Details of helper functions follow */
 
+  var DUMMYFILE_FROM_CAMERA = /DCIM\/\d{3}MZLLA\/\.VID_\d{4}\.3gp$/;
+
   //
   // Return true if media db should ignore this file.
   //
@@ -1236,9 +1239,14 @@ var MediaDB = (function() {
   // give us a name only, not the file object.
   // Ignore files having directories beginning with .
   // Bug https://bugzilla.mozilla.org/show_bug.cgi?id=838179
+  // Ignore all dummy files from camera, see bug 908035 for this part.
   function ignoreName(filename) {
-    var path = filename.substring(0, filename.lastIndexOf('/') + 1);
-    return (path[0] === '.' || path.indexOf('/.') !== -1);
+    if (DUMMYFILE_FROM_CAMERA.test(filename)) {
+      return true;
+    } else {
+      var path = filename.substring(0, filename.lastIndexOf('/') + 1);
+      return (path[0] === '.' || path.indexOf('/.') !== -1);
+    }
   }
 
   // Tell the db to start a manual scan. I think we don't do
@@ -1279,7 +1287,7 @@ var MediaDB = (function() {
       var cursor;
       if (timestamp > 0) {
         media.details.firstscan = false;
-        cursor = media.storage.enumerate('', {
+        cursor = enumerateAll(media.details.storages, '', {
           // add 1 so we don't find the same newest file again
           since: new Date(timestamp + 1)
         });
@@ -1290,7 +1298,7 @@ var MediaDB = (function() {
         // allows important optimizations during the scanning process
         media.details.firstscan = true;
         media.details.records = [];
-        cursor = media.storage.enumerate('');
+        cursor = enumerateAll(media.details.storages, '');
       }
 
       cursor.onsuccess = function() {
@@ -1346,7 +1354,7 @@ var MediaDB = (function() {
       // were found during the quick scan.  So we'll start off by
       // enumerating all files in device storage
       var dsfiles = [];
-      var cursor = media.storage.enumerate('');
+      var cursor = enumerateAll(media.details.storages, '');
       cursor.onsuccess = function() {
         if (!media.scanning)  // Abort if scanning has been cancelled
           return;
@@ -1598,7 +1606,11 @@ var MediaDB = (function() {
 
       // If we got a filename, look up the file in device storage
       if (typeof f === 'string') {
-        var getreq = media.storage.get(f);
+        // Note: Even though we're using the default storage area, if the
+        //       filename is fully qualified, it will get redirected to the
+        //       appropriate storage area.
+        var storage = navigator.getDeviceStorage(media.mediaType);
+        var getreq = storage.get(f);
         getreq.onerror = function() {
           console.warn('MediaDB: Unknown file in insertRecord:',
                        f, getreq.error);

@@ -6,6 +6,9 @@
 var ActivityHandler = {
   isLocked: false,
   init: function() {
+    if (!window.navigator.mozSetMessageHandler) {
+      return;
+    }
     window.navigator.mozSetMessageHandler('activity', this.global.bind(this));
 
     // We want to register the handler only when we're on the launch path
@@ -128,16 +131,15 @@ var ActivityHandler = {
   // discard: clear the message user typed
   // edit: continue to edit the unsent message and ignore the activity
   displayUnsentConfirmation: function ah_displayUnsentConfirmtion(activity) {
-    var _ = navigator.mozL10n.get;
     var msgDiv = document.createElement('div');
-    msgDiv.innerHTML = '<h1>' + _('unsent-message-title') +
-                       '</h1><p>' + _('unsent-message-description') + '</p>';
+    msgDiv.innerHTML = '<h1 data-l10n-id="unsent-message-title"></h1>' +
+                       '<p data-l10n-id="unsent-message-description"></p>';
     var self = this;
     var options = new OptionMenu({
       type: 'confirm',
       section: msgDiv,
       items: [{
-        name: _('unsent-message-option-edit'),
+        l10nId: 'unsent-message-option-edit',
         method: function editOptionMethod() {
           // it already in message app, we don't need to do anything but
           // clearing activity variables in MessageManager.
@@ -145,7 +147,7 @@ var ActivityHandler = {
         }
       },
       {
-        name: _('unsent-message-option-discard'),
+        l10nId: 'unsent-message-option-discard',
         method: this.launchComposer.bind(this),
         params: [activity]
       }]
@@ -318,8 +320,8 @@ var ActivityHandler = {
         // We have to remove the SMS due to it does not have to be shown.
         MessageManager.deleteMessage(message.id, function() {
           app.launch();
-          Notification.ringtone();
-          Notification.vibrate();
+          Notify.ringtone();
+          Notify.vibrate();
           alert(number + '\n' + message.body);
           releaseWakeLock();
         });

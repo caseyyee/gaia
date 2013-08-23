@@ -32,12 +32,16 @@ manifest.appcache
 /showcase_apps/*/test/unit/_proxy.html
 /showcase_apps/*/locales-obj
 
+/shared/test/integration/node_modules
+
+/b2g
 /profile/
 /profile-debug/
+/profile-test/
 /profile.tar.gz
 /.xulrunner-url
 /xulrunner/
-/xulrunner-sdk/
+/xulrunner-sdk*/
 /tools/test-agent/node_modules
 /test-output.xml
 /mocha-test-results.html
@@ -53,7 +57,7 @@ manifest.appcache
 /outoftree_apps/
 
 /distribution/
-
+/node_modules/
 /.cproject
 /.project
 /.settings

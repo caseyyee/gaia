@@ -30,13 +30,13 @@ var AlarmList = {
       return;
 
     if (link === this.newAlarmButton) {
-      ClockView.hide();
+
       this.alarmEditView();
     } else if (link.classList.contains('input-enable')) {
       this.toggleAlarmEnableState(link.checked,
         this.getAlarmFromList(parseInt(link.dataset.id, 10)));
     } else if (link.classList.contains('alarm-item')) {
-      ClockView.hide();
+
       this.alarmEditView(this.getAlarmFromList(
         parseInt(link.dataset.id, 10)));
     }
@@ -71,14 +71,15 @@ var AlarmList = {
   },
 
   buildAlarmContent: function al_buildAlarmContent(alarm) {
-    var summaryRepeat =
-      (alarm.repeat === '0000000') ? '' : summarizeDaysOfWeek(alarm.repeat);
+    var summaryRepeat = (Utils.isEmptyRepeat(alarm.repeat)) ?
+      '' : Utils.summarizeDaysOfWeek(alarm.repeat);
     var isChecked = alarm.enabled ? ' checked="true"' : '';
     var d = new Date();
     d.setHours(alarm.hour);
     d.setMinutes(alarm.minute);
-    var time = getLocaleTime(d);
-    var label = (alarm.label === '') ? _('alarm') : escapeHTML(alarm.label);
+    var time = Utils.getLocaleTime(d);
+    var label = (alarm.label === '') ?
+      _('alarm') : Utils.escapeHTML(alarm.label);
     return '<label class="alarmList alarmEnable">' +
            '  <input class="input-enable"' +
                  '" data-id="' + alarm.id +

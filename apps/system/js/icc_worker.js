@@ -54,7 +54,7 @@ var icc_worker = {
     var _ = navigator.mozL10n.get;
     DUMP('STK_CMD_SET_UP_CALL:', command.options);
     var options = command.options;
-    if (options.confirmMessage == '') {
+    if (!options.confirmMessage) {
       options.confirmMessage = _(
         'icc-confirmCall-defaultmessage', {
           'number': options.address
@@ -336,16 +336,126 @@ var icc_worker = {
 
   // STK_CMD_PROVIDE_LOCAL_INFO
   '0x26': function STK_CMD_PROVIDE_LOCAL_INFO(command, iccManager) {
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=817952
-    DUMP('STK_CMD_PROVIDE_LOCAL_INFO', command.options);
-    icc_worker.dummy(iccManager);
+    var conn = window.navigator.mozMobileConnection;
+    DUMP('STK_CMD_PROVIDE_LOCAL_INFO:', command.options);
+    switch (command.options.localInfoType) {
+      case iccManager._icc.STK_LOCAL_INFO_LOCATION_INFO:
+        iccManager.responseSTKCommand({
+          localInfo: {
+            locationInfo: {
+              mcc: IccHelper.iccInfo.mcc,
+              mnc: IccHelper.iccInfo.mnc,
+              gsmLocationAreaCode: conn.voice.cell.gsmLocationAreaCode,
+              gsmCellId: conn.voice.cell.gsmCellId
+            }
+          },
+          resultCode: iccManager._icc.STK_RESULT_OK
+        });
+        break;
+
+      case iccManager._icc.STK_LOCAL_INFO_IMEI:
+        var req = conn.sendMMI('*#06#');
+        req.onsuccess = function getIMEI() {
+          if (req.result && req.result.statusMessage) {
+            iccManager.responseSTKCommand({
+              localInfo: {
+                imei: req.result.statusMessage
+              },
+              resultCode: iccManager._icc.STK_RESULT_OK
+            });
+          }
+        };
+        req.onerror = function errorIMEI() {
+          iccManager.responseSTKCommand({
+              localInfo: {
+                imei: '0'
+              },
+            resultCode: iccManager._icc.STK_RESULT_REQUIRED_VALUES_MISSING
+          });
+        };
+        break;
+
+      case iccManager._icc.STK_LOCAL_INFO_DATE_TIME_ZONE:
+        iccManager.responseSTKCommand({
+          localInfo: {
+            date: new Date()
+          },
+          resultCode: iccManager._icc.STK_RESULT_OK
+        });
+        break;
+
+      case iccManager._icc.STK_LOCAL_INFO_LANGUAGE:
+        var reqLanguage =
+          window.navigator.mozSettings.createLock().get('language.current');
+        reqLanguage.onsuccess = function icc_getLanguage() {
+          iccManager.responseSTKCommand({
+            localInfo: {
+              language: reqLanguage.result['language.current'].substring(0, 2)
+            },
+            resultCode: iccManager._icc.STK_RESULT_OK
+          });
+        };
+        reqLanguage.onerror = function icc_getLanguageFailed() {
+          iccManager.responseSTKCommand({
+            localInfo: {
+              language: 'en'
+            },
+            resultCode: iccManager._icc.STK_RESULT_REQUIRED_VALUES_MISSING
+          });
+        };
+        break;
+    }
   },
 
   // STK_CMD_TIMER_MANAGEMENT
   '0x27': function STK_CMD_TIMER_MANAGEMENT(command, iccManager) {
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=817954
-    DUMP('STK_CMD_TIMER_MANAGEMENT', command.options);
-    icc_worker.dummy(iccManager);
+    DUMP('STK_CMD_TIMER_MANAGEMENT:', command.options);
+    var a_timer = advanced_timer;
+    var options = command.options;
+    var pendingTime = 0;
+    switch (options.timerAction) {
+      case iccManager._icc.STK_TIMER_START:
+        a_timer.start(options.timerId, options.timerValue * 1000,
+          function() {
+            DUMP('Timer expiration - ' + options.timerId);
+            iccManager._icc.sendStkTimerExpiration({
+              'timerId': options.timerId
+            });
+          });
+        iccManager.responseSTKCommand({
+          timer: {
+            'timerId': options.timerId,
+            'timerValue': options.timerValue,
+            'timerAction': iccManager._icc.STK_TIMER_START
+          },
+          resultCode: iccManager._icc.STK_RESULT_OK
+        });
+        break;
+
+      case iccManager._icc.STK_TIMER_DEACTIVATE:
+        pendingTime = a_timer.stop(options.timerId) / 1000;
+        iccManager.responseSTKCommand({
+          timer: {
+            'timerId': options.timerId,
+            'timerValue': pendingTime,
+            'timerAction': iccManager._icc.STK_TIMER_DEACTIVATE
+          },
+          resultCode: iccManager._icc.STK_RESULT_OK
+        });
+        break;
+
+      case iccManager._icc.STK_TIMER_GET_CURRENT_VALUE:
+        pendingTime = a_timer.queryPendingTime(options.timerId) / 1000;
+        iccManager.responseSTKCommand({
+          timer: {
+            'timerId': options.timerId,
+            'timerValue': pendingTime,
+            'timerAction': iccManager._icc.STK_TIMER_GET_CURRENT_VALUE
+          },
+          resultCode: iccManager._icc.STK_RESULT_OK
+        });
+        break;
+    }
   },
 
   // STK_CMD_SET_UP_IDLE_MODE_TEXT

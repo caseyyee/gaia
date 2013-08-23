@@ -9,7 +9,7 @@ Evme.DoATAPI = new function Evme_DoATAPI() {
         RETRY_TIMEOUT = {"from": 1000, "to": 3000},     // timeout before retrying a failed request
         MAX_REQUEST_TIME = 20000,                       // timeout before declaring a request as failed (if server isn't responding)
         MAX_ITEMS_IN_CACHE = 20,                        // maximum number of calls to save in the user's cache
-        CACHE_EXPIRATION_IN_MINUTES = 30,
+        CACHE_EXPIRATION_IN_MINUTES = 24*60,
         STORAGE_KEY_CREDS = "credentials",
         authCookieName = '',
         userLat,
@@ -94,7 +94,7 @@ Evme.DoATAPI = new function Evme_DoATAPI() {
             });
         }
 
-        self.Session.init();
+        self.Session.init(options.callback);
     };
     
     this.search = function search(options, callback, noSession) {
@@ -253,6 +253,12 @@ Evme.DoATAPI = new function Evme_DoATAPI() {
 
                         shortcuts = Evme.__config['_' + STORAGE_KEY_SHORTCUTS];
                         icons = Evme.__config['_' + STORAGE_KEY_ICONS];
+
+                        // save the default shortcuts, so if won't keep taking the default ones
+                        self.set({
+                          "shortcuts": shortcuts,
+                          "icons": icons
+                        });
                     }
 
                     didClear = false;
@@ -722,7 +728,7 @@ Evme.DoATAPI = new function Evme_DoATAPI() {
             "CACHE_ERROR": "cache error"
         };
         
-        this.init = function init() {
+        this.init = function init(callback) {
             Evme.Storage.get(_key, function storageGot(sessionFromCache) {
                 var createCause;
 
@@ -739,6 +745,8 @@ Evme.DoATAPI = new function Evme_DoATAPI() {
                 if (!_session) {
                     self.create(null, null, createCause);
                 }
+
+                callback && callback();
             });
         };
         

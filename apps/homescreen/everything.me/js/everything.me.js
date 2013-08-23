@@ -2,70 +2,74 @@ var EverythingME = {
 
   displayed: false,
 
-  pageHideBySwipe: false,
-
   init: function EverythingME_init() {
-    var footerStyle = document.querySelector('#footer').style;
-    footerStyle.MozTransition = '-moz-transform .3s ease';
+    var footer = document.querySelector('#footer');
+    if (footer) {
+      footer.style.MozTransition = '-moz-transform .3s ease';
+    }
+    
+    var self = this,
+        page = document.getElementById('landing-page'),
+        activationIcon = document.getElementById('evme-activation-icon');
 
-    var page = document.getElementById('evmePage');
-    page.addEventListener('gridpageshowend', function onpageshow() {
-      page.removeEventListener('gridpageshowend', onpageshow);
+    activationIcon.innerHTML = '<input type="text" x-inputmode="verbatim" data-l10n-id="evme-searchbar-default" />';
+    navigator.mozL10n.ready(function loadSearchbarValue() {
+      var input = activationIcon.querySelector('input'),
+          defaultText = navigator.mozL10n.get('evme-searchbar-default2') || '';
 
-      document.querySelector('#loading-overlay > section').style.visibility =
-                                                                      'visible';
-
-      EverythingME.displayed = true;
-      footerStyle.MozTransform = "translateY(100%)";
-
-      page.addEventListener('gridpageshowend', function onpageshowafterload() {
-        if (EverythingME.displayed) return;
-
-        EverythingME.displayed = true;
-        footerStyle.MozTransform = "translateY(100%)";
-        EvmeFacade.onShow();
-      });
-
-      EverythingME.load(function success() {
-        if (EverythingME.displayed)
-          EvmeFacade.onShow();
-        var loadingOverlay = document.querySelector('#loading-overlay');
-        loadingOverlay.style.opacity = 0;
-        setTimeout(function starting() {
-          document.querySelector('#evmeContainer').style.opacity = 1;
-          loadingOverlay.parentNode.removeChild(loadingOverlay);
-        }, 0);
-      });
+      input.setAttribute('placeholder', defaultText);
     });
 
-    page.addEventListener('gridpagehideend', function onpagehide() {
-      if (!EverythingME.displayed) return;
+    activationIcon.addEventListener('click', onClick);
+    activationIcon.addEventListener('contextmenu', onContextMenu);
 
-      EverythingME.displayed = false;
-      footerStyle.MozTransform = 'translateY(0)';
+    page.addEventListener('gridpageshowend', function onPageShow() {
+      EvmeFacade.onShow();
+    });
+    page.addEventListener('gridpagehideend', function onPageHide() {
       EvmeFacade.onHide();
-      EverythingME.pageHideBySwipe = false;
     });
 
-    page.addEventListener('gridpagehidestart', function onpagehidestart() {
-      EverythingME.pageHideBySwipe = true;
-    });
+    function onClick(e) {
+      this.removeEventListener('click', onClick);
+      this.removeEventListener('contextmenu', onContextMenu);
+      self.activate();
+    }
 
-    page.addEventListener('contextmenu', function longPress(evt) {
-        evt.stopImmediatePropagation();
-    });
+    function onContextMenu(e) {
+      e.stopPropagation();
+    }
+    
+    EverythingME.migrateStorage();
+  },
+  
+  activate: function EverythingME_activate(e) {
+    document.body.classList.add('evme-loading');
 
-    window.addEventListener('hashchange', function hasChange(evt) {
-      if (!EverythingME.displayed || document.location.hash === '#evme') {
-        return;
+    this.load(function onEvmeLoaded() {
+      var page = document.getElementById('evmeContainer'),
+          landingPage = document.getElementById('landing-page'),
+          activationIcon = document.getElementById('evme-activation-icon'),
+          input = activationIcon.querySelector('input'),
+          existingQuery = input && input.value;
+      
+      landingPage.appendChild(page.parentNode.removeChild(page));
+      EvmeFacade.onShow();
+      
+      // set the query the user entered before loaded
+      input = document.getElementById('search-q');
+      if (input) {
+        if (existingQuery) {
+          EvmeFacade.searchFromOutside(existingQuery);
+        }
+
+        EvmeFacade.Searchbar && EvmeFacade.Searchbar.focus && EvmeFacade.Searchbar.focus();
+        input.setSelectionRange(existingQuery.length, existingQuery.length);
       }
 
-      var captured = EvmeFacade.onHideStart(EverythingME.pageHideBySwipe ?
-                                            'pageSwipe' : 'homeButtonClick');
-      if (captured) {
-        evt.stopImmediatePropagation();
-        document.location.hash = '#evme';
-      }
+      document.body.classList.remove('evme-loading');
+      
+      activationIcon.parentNode.removeChild(activationIcon);
     });
   },
 
@@ -120,14 +124,7 @@ var EverythingME = {
     var progressElement = document.querySelector('#loading-overlay progress');
     var total = js_files.length + css_files.length, counter = 0;
 
-    function updateProgress() {
-      var value = Math.floor(((++counter) / total) * 100);
-      progressLabel.textContent = value + '%';
-      progressElement.value = value;
-    }
-
     function onScriptLoad(event) {
-      updateProgress();
       event.target.removeEventListener('load', onScriptLoad);
       if (++scriptLoadCount == js_files.length) {
         EverythingME.start(success);
@@ -137,7 +134,6 @@ var EverythingME = {
     }
 
     function onCSSLoad(event) {
-      updateProgress();
       event.target.removeEventListener('load', onCSSLoad);
       if (++cssLoadCount === css_files.length) {
         loadScript(js_files[scriptLoadCount]);
@@ -191,11 +187,89 @@ var EverythingME = {
       var resource = list[i];
       resource.parentNode.removeChild(resource);
     }
+  },
+
+  // copy relevant user data from 1.0.1 to 1.1 versions
+  migrateStorage: function EverythingME_migrateStorage() {
+    var migrationStorageKey = 'migrated_1.0.1_to_1.1';
+
+    asyncStorage.getItem(migrationStorageKey, function evmeMigration(value) {
+      if (value === true) {
+        // this means we already migrated, so everything's a-ok
+        return;
+      }
+
+      // first mark as "migrated", so if we have an error we won't keep running this
+      asyncStorage.setItem(migrationStorageKey, true);
+
+      // start the migration
+      console.log('[EVME migration] migrating from 1.0.1 to 1.1...');
+
+      // these are properties that don't need special attention -
+      // simply copy from sync to async, oldKey: newKey
+      var AUTOMATIC_KEYS = {
+        'userHistory': 'evme-userHistory',
+        'localShortcuts': 'evme-localShortcuts',
+        'localShortcutsIcons': 'evme-localShortcutsIcons'
+      };
+
+      for (var key in AUTOMATIC_KEYS) {
+        EverythingME.copyStorageToDB(key, AUTOMATIC_KEYS[key]);
+      }
+
+      console.log('[EVME migration] complete successfully!');
+    });
+  },
+  
+  copyStorageToDB: function copyStorageToDB(oldKey, newKey) {
+    console.log('[EVME migration] [' + oldKey + ']: retrieving...');
+
+    try {
+      var oldValue = window.localStorage[oldKey];
+
+      if (!oldValue) {
+        console.log('[EVME migration] [' + oldKey + ']: no value');
+        return false;
+      }
+
+      console.log('[EVME migration] [' + oldKey + '] got value: ' + oldValue);
+      oldValue = JSON.parse(oldValue);
+      if (!oldValue) {
+        console.log('[EVME migration] [' + oldKey + ']: invalid json: ' + window.localStorage[oldKey]);
+        deleteOld();
+        return false;
+      }
+
+      // convert old structure to new
+      var newValue = {
+        'value': oldValue._v,
+        'expires': oldValue._e
+      };
+
+      console.log('[EVME migration] [' + oldKey + ':' + newKey + ']: saving: ' + JSON.stringify(newValue));
+      asyncStorage.setItem(newKey, newValue, function onsaved() {
+        console.log('[EVME migration] [' + oldKey + ':' + newKey + ']: saved, remove old data');
+        deleteOld();
+      });
+    } catch(ex) {
+      deleteOld();
+      console.warn('[EVME migration] [' + oldKey + ']: error: ' + oldValue + ' (' + ex.message + ')');
+    }
+    
+    function deleteOld() {
+      window.localStorage[oldKey] = null;
+      delete window.localStorage[oldKey];
+    }
+
+    return true;
   }
 };
 
 var EvmeFacade = {
-  onHideStart: function onHideStart() {
+  onShow: function onShow() {
+    return false;
+  },
+  onHide: function onHide() {
     return false;
   }
 };

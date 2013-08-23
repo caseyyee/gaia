@@ -44,11 +44,7 @@ input[type="image"] {
 }
 
 #awesomescreen-cancel-button {
-  background-image: url('./images/close.png');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-color: transparent;
-  background-size: 2.7rem;
+  background: url('./images/close.png') center center no-repeat;
   display: none;
   position: absolute;
   right: 0;
@@ -57,12 +53,31 @@ input[type="image"] {
   height: 5rem;
 }
 
+#awesomescreen-cancel-button:active {
+  background: url('./images/close.png') center center no-repeat,
+              url('./images/close-pressed-bg.png') center center no-repeat;
+}
+
 .awesome-screen #awesomescreen-cancel-button {
   display: block;
 }
 
+#settings {
+  font-size: 1.6rem;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-color: #eeefea;
+  width: 100%;
+  height: 100%;
+  z-index: 150;
+  transition: 0.5s ease-in-out;
+  transform: translateY(100%);
+}
+
 .settings-screen #settings {
   display: block;
+  transform: translateY(0%);
 }
 
 .current {
@@ -163,20 +178,17 @@ input[type="image"] {
 }
 
 #tabs-list .close:active {
-  color: #666;
+  background-image: url(images/tab-icon-pressed-closetab.png);
 }
 
 #tabs-list .close {
-  border: 0;
   position: absolute;
   right: 0;
-  height: 100%;
-  width: 5rem;
   top: 0;
-  background: transparent;
-  font-size: 2.8rem;
-  color: white;
-  padding-bottom: 0.7rem;
+  width: 5rem;
+  height: 100%;
+  border: 0;
+  background: url(images/tab-icon-pressed-closetab.png) no-repeat 50% 50% / 3rem;
 }
 
 #main-screen {
@@ -221,10 +233,6 @@ input[type="image"] {
   -moz-user-select: none;
 }
 
-#tabs-badge:active {
-  color: #AAA;
-}
-
 #more-tabs {
   font-size: 2.8rem;
 }
@@ -258,12 +266,23 @@ input[type="image"] {
   padding-right: 6.5rem;
 }
 
+.page-screen #toolbar-start:active {
+  background-image: url('./images/tab-pressed-bg.png');
+}
+
 .tabs-screen #toolbar-start {
-  background-image: url('./images/iconaction_back_50x50.png'), url('./images/tabs-badge-background.png');
+  background-image: url('./images/iconaction_back_50x50.png'),
+                    url('./images/tabs-badge-background.png');
   background-repeat: no-repeat, no-repeat;
   background-position: top right, right;
-  background-size: auto 5rem;
+  background-size: 5rem, auto 5rem;
   padding-right: 6.5rem;
+}
+
+.tabs-screen #toolbar-start:active {
+  background-image: url('./images/iconaction_back_50x50.png'),
+                    url('./images/tab-pressed-bg.png');
+  background-size: 5rem, auto 5rem;
 }
 
 .tabs-screen #frames {
@@ -282,6 +301,10 @@ input[type="image"] {
   background-color: #fff;
   font-weight: 600;
   width: calc(100% - 1.5rem);
+}
+
+#url-bar.focus {
+  border: 0.1rem solid #00c7ef;
 }
 
 #url-button {
@@ -793,7 +816,7 @@ li[role="listitem"] small {
 
 #refresh a {
   background-image: url('images/refresh.png');
-  background-size: 3.2rem;
+  background-size: auto;
 }
 
 .hidden {
@@ -807,69 +830,37 @@ li[role="listitem"] small {
 
 #tray-toolbar button {
   width: 6rem;
-  background-repeat: no-repeat;
-  background-position: center, left;
   border-radius: 0;
 }
 
 #settings-button {
-  background-image: url('images/iconaction_settings_30x30.png');
+  background: url('images/iconaction_settings_30x30.png') center center no-repeat;
+  background-size: 3rem;
   float: right;
   height: 5rem;
+}
+
+#settings-button:active {
+  background: url('images/iconaction_settings_30x30.png') center center no-repeat,
+              url('images/icon-pressed-bg.png') 100% no-repeat;
 }
 
 #new-tab-button {
-  background-image: url('images/iconaction_new_30x30.png'), url('images/header-divider.png');
-  background-size: auto 3rem, 0.2rem;
+  background: url('images/iconaction_new_30x30.png') center center no-repeat,
+              url('images/header-divider.png') left center no-repeat;
+  background-size: 3rem, auto;
   float: right;
   height: 5rem;
 }
 
-#settings {
-  font-size: 1.6rem;
-  position: absolute;
-  left: 0;
-  top: 0;
-  background-color: #eeefea;
-  width: 100%;
-  height: 100%;
-  z-index: 150;
-  display: none;
+#new-tab-button:active {
+  background: url('images/iconaction_new_30x30.png') center center no-repeat,
+              url('images/header-divider.png') left center no-repeat,
+              url('images/icon-pressed-bg.png') 100% no-repeat;
 }
 
 #danger-dialog {
   z-index: 200;
-}
-
-#settings ul {
-  margin: 0;
-  padding: 0;
-}
-
-#settings li {
-  margin: 1rem 3rem;
-  list-style-type: none;
-}
-
-#settings li button {
-  margin: 0;
-  height: auto;
-  line-height: 2rem;
-  padding: 1rem 1.5rem;
-}
-
-
-#settings li#enable-cookies {
-  margin-bottom: 2rem;
-}
-
-#enable-cookies input {
-  position: relative;
-  top: -0.2rem;
-}
-
-#settings [disabled="disabled"] {
-  opacity: 0.7;
 }
 
 /** Bookmark Menu **/
@@ -947,5 +938,18 @@ li[role="listitem"] small {
 }
 
 #save-media-status.visible {
+  display: block;
+}
+
+#dialog-overlay {
+  display: none;
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+}
+
+.modal-active #dialog-overlay {
   display: block;
 }

@@ -12,8 +12,7 @@ suite('Dialog', function() {
   suiteSetup(function() {
     loadBodyHTML('/index.html');
     navigator.mozL10n = MockL10n;
-    params =
-    {
+    params = {
       title: {
         value: 'Foo Title',
         l10n: false
@@ -30,7 +29,6 @@ suite('Dialog', function() {
           }
         }
       }
-
     };
   });
 
@@ -68,6 +66,17 @@ suite('Dialog', function() {
     // We check the type
     var dialogForm = currentlyDefinedForms[currentlyDefinedFormsLength - 1];
     assert.equal(dialogForm.dataset.type, 'confirm');
+  });
+
+
+  test('Focus', function() {
+    var dialog = new Dialog(params);
+
+    this.sinon.spy(dialog.form, 'focus');
+
+    dialog.show();
+
+    assert.ok(dialog.form.focus.called);
   });
 
   test('Checking the structure. Default.', function() {
@@ -111,8 +120,8 @@ suite('Dialog', function() {
   });
 
   test('Checking the localization.', function() {
-    var l10nCancel = 'keyCancel';
-    var l10nConfirm = 'keyConfirm';
+    params.title.l10n = true;
+    params.body.l10n = true;
     params.options.cancel = {
       text: {
         value: 'keyCancel',
@@ -125,6 +134,7 @@ suite('Dialog', function() {
         l10n: true
       }
     };
+    var l10nSpy = this.sinon.spy(navigator.mozL10n, 'localize');
     // Now we create the new element
     var dialog = new Dialog(params);
     // We append the element to the DOM
@@ -135,11 +145,21 @@ suite('Dialog', function() {
     // We check the type
     var dialogForm = currentlyDefinedForms[currentlyDefinedFormsLength - 1];
     // We check how many buttons we have (mandatory + confirm one)
+    var titleDOM = dialogForm.querySelector('strong');
+    var bodyDOM = dialogForm.querySelector('small');
     var formOptions = dialogForm.getElementsByTagName('button');
     assert.equal(formOptions.length, 2);
     // We check localization
-    assert.equal(formOptions[0].dataset.l10nId, l10nConfirm);
-    assert.equal(formOptions[1].dataset.l10nId, l10nCancel);
+    assert.ok(l10nSpy.calledWith(titleDOM, params.title.value),
+      'Title DOM localized with proper string');
+    assert.ok(l10nSpy.calledWith(bodyDOM, params.body.value),
+      'Body DOM localized with proper string');
+    assert.ok(l10nSpy.calledWith(formOptions[0],
+      params.options.confirm.text.value),
+      'Confirm DOM localized with proper string');
+    assert.ok(l10nSpy.calledWith(formOptions[1],
+      params.options.cancel.text.value),
+      'Cancel DOM localized with proper string');
   });
 
 

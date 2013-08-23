@@ -40,6 +40,14 @@ const JS_AGGREGATION_BLACKLIST = [
   'system'
 ];
 
+/**
+ * whitelist by app name for l10n optimization.
+ */
+const L10N_OPTIMIZATION_BLACKLIST = [
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=898408
+  'pdfjs'
+];
+
 
 /**
  * Optimization helpers -- these environment variables are used:
@@ -240,6 +248,48 @@ function optimize_aggregateJsResources(doc, webapp, htmlFile) {
 }
 
 /**
+ * Part of our polyfill for web components
+ * Inserts components into the DOM as comment nodes
+ * @param {HTMLDocument} doc DOM document of the file.
+ * @param {Object} webapp details of current web app.
+ */
+function optimize_embedWebComponents(doc, app, htmlFile) {
+  let imports = doc.querySelectorAll('link[rel="import"]');
+  if (!imports.length) {
+    return;
+  }
+
+  // Mapping of all custom element templates
+  var elementTemplates = {};
+
+  Array.prototype.forEach.call(imports, function eachImport(eachImport) {
+    let content = optimize_getFileContent(app, htmlFile, eachImport.href);
+    content = '<div>' + content + '</div>';
+
+    let DOMParser = CC('@mozilla.org/xmlextras/domparser;1', 'nsIDOMParser');
+    let elementRoot = (new DOMParser()).
+        parseFromString(content, 'text/html');
+    let elements = elementRoot.querySelectorAll('element');
+
+    // Remove import node from doc
+    eachImport.parentNode.removeChild(eachImport);
+
+    for (let i = 0, iLen = elements.length; i < iLen; i++) {
+      var element = elements[i];
+      var template = element.querySelector('template');
+      elementTemplates[element.getAttribute('name')] = template.innerHTML;
+    }
+  });
+
+  // Insert comment node
+  var replaceableElements = doc.querySelectorAll('*[is]');
+  Array.prototype.forEach.call(replaceableElements, function eachEl(el) {
+    el.innerHTML = '<!--' + elementTemplates[el.getAttribute('is')] + '-->';
+    el.removeAttribute('is');
+  });
+}
+
+/**
  * Creates a dictionary for all l10n entities that are required by the HTML
  * document, and include it as an inline JSON.
  *
@@ -417,6 +467,7 @@ function optimize_compile(webapp, file, callback) {
 
       // save localized / optimized document
       let newFile = new FileUtils.File(file.path + '.' + GAIA_DEFAULT_LOCALE);
+      optimize_embedWebComponents(win.document, webapp, newFile);
       optimize_embedL10nResources(win.document, subDict);
       optimize_concatL10nResources(win.document, webapp, fullDict);
       optimize_aggregateJsResources(win.document, webapp, newFile);
@@ -432,12 +483,13 @@ function optimize_compile(webapp, file, callback) {
   win.document = (new DOMParser()).
       parseFromString(getFileContent(file), 'text/html');
 
-  // if this HTML document uses l10n.js, pre-localize it --
-  // A document can use l10n.js either by including l10n.js or
-  // application/l10n resource link elements
-  // selecting a language triggers `XMLHttpRequest' and `dispatchEvent' above
-  if (win.document.querySelector('script[src$="l10n.js"]') ||
-      win.document.querySelector('link[type$="application/l10n"]')) {
+  // If this HTML document uses l10n.js, pre-localize it --
+  //   note: a document can use l10n.js by including either l10n.js or
+  //   application/l10n resource link elements (see /shared/js/lazy_l10n.js).
+  if ((win.document.querySelector('script[src$="l10n.js"]') ||
+      win.document.querySelector('link[type$="application/l10n"]')) &&
+      L10N_OPTIMIZATION_BLACKLIST.indexOf(webapp.sourceDirectoryName) < 0) {
+    // selecting a language triggers `XMLHttpRequest' and `dispatchEvent' above
     debug('localizing: ' + file.path);
     mozL10n.language.code = l10nLocales[processedLocales];
   } else {

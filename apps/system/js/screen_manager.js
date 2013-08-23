@@ -194,8 +194,7 @@ var ScreenManager = {
         break;
 
       case 'sleep':
-        this._screenOffBy = 'powerkey';
-        this.turnScreenOff(true);
+        this.turnScreenOff(true, 'powerkey');
         break;
 
       case 'wake':
@@ -211,9 +210,8 @@ var ScreenManager = {
             // We shouldn't access headset status from statusbar.
           break;
 
-        this._screenOffBy = evt.near ? 'proximity' : '';
         if (evt.near) {
-          this.turnScreenOff(true);
+          this.turnScreenOff(true, 'proximity');
         } else {
           this.turnScreenOn();
         }
@@ -271,18 +269,19 @@ var ScreenManager = {
     if (this.screenEnabled) {
       // Currently there is no one used toggleScreen, so just set reason as
       // toggle. If it is used by someone in the future, we can rename it.
-      this._screenOffBy = 'toggle';
-      this.turnScreenOff();
+      this.turnScreenOff(true, 'toggle');
     } else {
       this.turnScreenOn();
     }
   },
 
-  turnScreenOff: function scm_turnScreenOff(instant) {
+  turnScreenOff: function scm_turnScreenOff(instant, reason) {
     if (!this.screenEnabled)
       return false;
 
     var self = this;
+    if (reason)
+      this._screenOffBy = reason;
 
     // Remember the current screen brightness. We will restore it when
     // we turn the screen back on.
@@ -338,7 +337,6 @@ var ScreenManager = {
   },
 
   turnScreenOn: function scm_turnScreenOn(instant) {
-    this._screenOffBy = '';
     if (this.screenEnabled) {
       if (this._inTransition) {
         // Cancel the dim out
@@ -385,8 +383,9 @@ var ScreenManager = {
   },
 
   _reconfigScreenTimeout: function scm_reconfigScreenTimeout() {
-    // Remove idle timer if screen wake lock is acquired.
-    if (this._screenWakeLocked) {
+    // Remove idle timer if screen wake lock is acquired or
+    // if no app has been displayed yet.
+    if (this._screenWakeLocked || !WindowManager.getDisplayedApp()) {
       this._setIdleTimeout(0);
     // The screen should be turn off with shorter timeout if
     // it was never unlocked.
@@ -488,8 +487,7 @@ var ScreenManager = {
 
     var self = this;
     var idleCallback = function idle_proxy() {
-      self._screenOffBy = 'idle_timeout';
-      self.turnScreenOff(instant);
+      self.turnScreenOff(instant, 'idle_timeout');
     };
     var activeCallback = function active_proxy() {
       self.turnScreenOn(true);
@@ -500,9 +498,14 @@ var ScreenManager = {
   },
 
   fireScreenChangeEvent: function scm_fireScreenChangeEvent() {
+    var detail = { screenEnabled: this.screenEnabled };
+
+    // Tell others the cause of screen-off.
+    detail.screenOffBy = this._screenOffBy;
+
     var evt = new CustomEvent('screenchange',
       { bubbles: true, cancelable: false,
-        detail: { screenEnabled: this.screenEnabled } });
+        detail: detail });
     window.dispatchEvent(evt);
   }
 };

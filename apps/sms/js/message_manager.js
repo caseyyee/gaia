@@ -105,7 +105,7 @@ var MessageManager = {
   },
 
   onVisibilityChange: function mm_onVisibilityChange(e) {
-    LinkActionHandler.resetActivityInProgress();
+    LinkActionHandler.reset();
     ThreadListUI.updateContactsInfo();
     ThreadUI.updateHeaderData();
     Utils.updateTimeHeaders();
@@ -202,6 +202,10 @@ var MessageManager = {
   },
 
   onHashChange: function mm_onHashChange(e) {
+    // Ensure that no specific element is left focused
+    // when changing UI panels
+    document.activeElement.blur();
+
     // Group Participants should never persist any hash changes
     ThreadUI.groupView.reset();
 
@@ -242,38 +246,40 @@ var MessageManager = {
       default:
         var threadId = Threads.currentId;
         var filter;
+        var willSlide = true;
+
+        var finishTransition = function finishTransition() {
+          // hashchanges from #group-view back to #thread=n
+          // are considered "in thread" and should not
+          // trigger a complete re-rendering of the messages
+          // in the thread.
+          if (!ThreadUI.inThread) {
+            ThreadUI.inThread = true;
+            ThreadUI.renderMessages(filter);
+          }
+        };
 
         if (threadId) {
           filter = new MozSmsFilter();
           filter.threadId = threadId;
 
+          // if we were previously composing a message - remove the class
+          // and skip the "slide" animation
           if (this.threadMessages.classList.contains('new')) {
-            // After a message is sent...
-            //
             this.threadMessages.classList.remove('new');
-
-            ThreadUI.updateHeaderData(function() {
-              ThreadUI.renderMessages(filter);
-            });
-          } else {
-            // Viewing received messages...
-            //
-            ThreadListUI.mark(threadId, 'read');
-
-            // Update Header
-            ThreadUI.updateHeaderData(function updateHeader() {
-              MessageManager.slide('left', function slideEnd() {
-                // hashchanges from #group-view back to #thread=n
-                // are considered "in thread" and should not
-                // trigger a complete re-rendering of the messages
-                // in the thread.
-                if (!ThreadUI.inThread) {
-                  ThreadUI.inThread = true;
-                  ThreadUI.renderMessages(filter);
-                }
-              });
-            });
+            willSlide = false;
           }
+
+          ThreadListUI.mark(threadId, 'read');
+
+          // Update Header
+          ThreadUI.updateHeaderData(function headerUpdated() {
+            if (willSlide) {
+              MessageManager.slide('left', finishTransition);
+            } else {
+              finishTransition();
+            }
+          });
         }
       break;
     }

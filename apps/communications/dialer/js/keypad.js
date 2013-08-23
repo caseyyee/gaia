@@ -105,12 +105,6 @@ var KeypadManager = {
       document.getElementById('keypad-hidebar-hide-keypad-action');
   },
 
-  get dialerMessageText() {
-    delete this.dialerMessageText;
-    return this.dialerMessageText =
-      document.getElementById('dialer-message-text');
-  },
-
   init: function kh_init(oncall) {
 
     this._onCall = !!oncall;
@@ -192,8 +186,8 @@ var KeypadManager = {
 
   render: function hk_render(layoutType) {
     if (layoutType == 'oncall') {
-      if (CallScreen.activeCall) {
-        this._phoneNumber = CallScreen.activeCall.call.number;
+      if (CallsHandler.activeCall) {
+        this._phoneNumber = CallsHandler.activeCall.call.number;
       }
       this._isKeypadClicked = false;
       this.phoneNumberViewContainer.classList.add('keypad-visible');
@@ -229,25 +223,9 @@ var KeypadManager = {
       var self = this;
       CallLogDBManager.getGroupAtPosition(1, 'lastEntryDate', true, 'dialing',
         function hk_ggap_callback(result) {
-          if (result && (typeof result === 'object')) {
-            if (result.number) {
-              self.updatePhoneNumber(result.number);
-              return;
-            }
+          if (result && (typeof result === 'object') && result.number) {
+            self.updatePhoneNumber(result.number);
           }
-          LazyL10n.get(function localized(_) {
-            self.dialerMessageText.textContent = _('NoPreviousOutgoingCalls');
-            self.dialerMessageText.hidden = false;
-            if (self.dialerMessageTimer) {
-              window.clearTimeout(self.dialerMessageTimer);
-            }
-            self.dialerMessageTimer = window.setTimeout(
-              function hk_removeDialerMessage() {
-                self.dialerMessageText.hidden = true;
-              },
-              3000
-            );
-          });
         }
       );
     } else {
@@ -272,7 +250,7 @@ var KeypadManager = {
 
   hangUpCallFromKeypad: function hk_hangUpCallFromKeypad(event) {
     CallScreen.body.classList.remove('showKeypad');
-    OnCallHandler.end();
+    CallsHandler.end();
   },
 
   formatPhoneNumber: function kh_formatPhoneNumber(ellipsisSide, maxFontSize) {
@@ -313,8 +291,6 @@ var KeypadManager = {
     if (!key) {
       return;
     }
-
-    this.dialerMessageText.hidden = true;
 
     // Per certification requirement, we need to send an MMI request to
     // get the device's IMEI as soon as the user enters the last # key from
@@ -484,6 +460,7 @@ var KeypadManager = {
       var visibility;
       if (phoneNumber.length > 0) {
         visibility = 'visible';
+        this.callBarAddContact.classList.remove('disabled');
       } else {
         visibility = 'hidden';
         this.callBarAddContact.classList.add('disabled');
@@ -503,25 +480,25 @@ var KeypadManager = {
   replacePhoneNumber:
     function kh_replacePhoneNumber(phoneNumber, ellipsisSide, maxFontSize) {
       if (this._onCall) {
-        CallScreen.activeCall.
+        CallsHandler.activeCall.
           replacePhoneNumber(phoneNumber, ellipsisSide, maxFontSize);
       }
   },
 
   restorePhoneNumber: function kh_restorePhoneNumber() {
     if (this._onCall) {
-      CallScreen.activeCall.restorePhoneNumber();
+      CallsHandler.activeCall.restorePhoneNumber();
     }
   },
 
   replaceAdditionalContactInfo:
     function kh_updateAdditionalContactInfo(additionalContactInfo) {
-    CallScreen.activeCall.replaceAdditionalContactInfo(additionalContactInfo);
+    CallsHandler.activeCall.replaceAdditionalContactInfo(additionalContactInfo);
   },
 
   restoreAdditionalContactInfo: function kh_restoreAdditionalContactInfo() {
     if (this._onCall) {
-      CallScreen.activeCall.restoreAdditionalContactInfo();
+      CallsHandler.activeCall.restoreAdditionalContactInfo();
     }
   },
 
