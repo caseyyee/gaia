@@ -179,12 +179,7 @@ var BlobView = (function() {
       var index = this.index + n;
       if (index < 0)
         fail('advance past beginning of buffer');
-      // It's usual that when we finished reading one target view,
-      // the index is advanced to the start(previous end + 1) of next view,
-      // and the new index will be equal to byte length(the last index + 1),
-      // we will not fail on it because it means the reading is finished,
-      // or do we have to warn here?
-      if (index > this.byteLength)
+      if (index >= this.byteLength)
         fail('advance past end of buffer');
       this.index = index;
     },
@@ -281,7 +276,7 @@ var BlobView = (function() {
         }
         else if (b1 < 240) {
           // 3-byte sequence
-          if (pos + 2 >= end)
+          if (pos + 3 >= end)
             fail();
           b2 = this.view.getUint8(pos + 1);
           if (b2 < 128 || b2 > 191)
