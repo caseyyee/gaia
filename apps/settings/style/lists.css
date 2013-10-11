@@ -243,14 +243,14 @@ input[type=range]::-moz-range-progress {
 }
 
 input[type=range]::-moz-range-thumb {
-  width: 2.8rem;
-  height: 2.8rem;
+  width: 40px;
+  height: 40px;
   border: solid 0.1rem transparent;
   border-radius: 3rem;
   transition: border 0.15s ease;
   -moz-box-sizing: border-box;
   background: url(images/range_thumb.png) no-repeat 50% 50%;
-  background-size: 2.8rem 2.8rem;
+  background-size: 40px 40px;
 }
 
 input[type=range]:active::-moz-range-thumb {
