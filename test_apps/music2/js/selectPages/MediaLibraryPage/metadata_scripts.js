@@ -179,12 +179,7 @@ var BlobView = (function() {
       var index = this.index + n;
       if (index < 0)
         fail('advance past beginning of buffer');
-      // It's usual that when we finished reading one target view,
-      // the index is advanced to the start(previous end + 1) of next view,
-      // and the new index will be equal to byte length(the last index + 1),
-      // we will not fail on it because it means the reading is finished,
-      // or do we have to warn here?
-      if (index > this.byteLength)
+      if (index >= this.byteLength)
         fail('advance past end of buffer');
       this.index = index;
     },
@@ -281,7 +276,7 @@ var BlobView = (function() {
         }
         else if (b1 < 240) {
           // 3-byte sequence
-          if (pos + 2 >= end)
+          if (pos + 3 >= end)
             fail();
           b2 = this.view.getUint8(pos + 1);
           if (b2 < 128 || b2 > 191)
@@ -461,7 +456,6 @@ function parseAudioMetadata(blob, metadataCallback, errorCallback) {
   // not originally metadata from the files
   var RATED = 'rated';
   var PLAYED = 'played';
-  var FAVORITED = "favorited";
 
   // Map id3v2 tag ids to metadata property names
   var ID3V2TAGS = {
@@ -512,7 +506,6 @@ function parseAudioMetadata(blob, metadataCallback, errorCallback) {
   var metadata = {};
   metadata[ARTIST] = metadata[ALBUM] = metadata[TITLE] = metadata[GENRE] = '';
   metadata[RATED] = metadata[PLAYED] = 0;
-  metadata[FAVORITED] = false;
 
   // If the blob has a name, use that as a default title in case
   // we can't find one in the file
