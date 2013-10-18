@@ -124,8 +124,8 @@ input.msg-search-text-tease {
   width: -moz-available;
 }
 .msg-header-author {
-  font-size: 1.8rem;
-  font-weight: 500;
+  font-size: 1.5rem;
+  font-weight: 400;
   color: #000;
   display: table-cell;
   width: -moz-available;
