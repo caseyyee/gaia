@@ -124,7 +124,7 @@ input.msg-search-text-tease {
   width: -moz-available;
 }
 .msg-header-author {
-  font-size: 1.9rem;
+  font-size: 1.8rem;
   font-weight: 500;
   color: #000;
   display: table-cell;
@@ -147,9 +147,9 @@ input.msg-search-text-tease {
 }
 .msg-header-subject {
   display: block;
-  color: #000;
+  color: #717171;
   font-size: 1.5rem;
-  font-weight: 500;
+  font-weight: 100;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -158,7 +158,7 @@ input.msg-search-text-tease {
   display: block;
   color: #a2a2a2;
   font-size: 1.5rem;
-  font-weight: 400;
+  font-weight: 100;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
