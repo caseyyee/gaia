@@ -336,11 +336,12 @@ section[role="region"].skin-organic > header:first-child,
 }
 
 /* drawers */
-.skin-organic section[role="region"].drawer > header:first-child{
+
+section[role="region"].skin-organic.drawer > header:first-child {
   background-color: #252e34;
 }
 
-.skin-organic section[role="region"].drawer > header h1 {
+section[role="region"].skin-organic.drawer > header h1 {
   color: #fff;
 }
 

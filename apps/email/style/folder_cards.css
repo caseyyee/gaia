@@ -11,7 +11,7 @@
   display: block;
   line-height: 2.5rem;
   padding: 0.6rem 2rem;
-  border-bottom: 0.1rem solid gray;
+  border-bottom: 0.1rem solid #333b41;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -47,7 +47,7 @@
 
 .fld-folders-container,
 .acct-scroller-region {
-  background: #3a4446 url(images/pattern.png);
+  background-color: #2c353b;
   background-size: auto auto, 100% 100%;
   overflow-x: hidden;
   overflow-y: auto;
@@ -80,8 +80,7 @@
   border-bottom: none;
 }
 .fld-folder-item.fld-folder-selected {
-  background-color: #008caa;
-  font-weight: bold;
+  background-color: #167c93;
 }
 .fld-folder-unselectable {
   color: #444;

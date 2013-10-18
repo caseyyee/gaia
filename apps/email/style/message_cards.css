@@ -31,7 +31,7 @@
 }
 
 .msg-search-tease-bar {
-  background-color: #eee;
+  background-color: #f7f9fa;
   text-align: center;
   border-bottom: 0.1rem solid #bdbdbd;
 }
@@ -86,7 +86,7 @@ input.msg-search-text-tease {
   border-radius: 50%;
 }
 .msg-header-unread-section-unread {
-  background-color: #53b8cc;
+  background-color: #2fcaec;
 }
 .msg-header-details-section {
   -moz-box-sizing: border-box;
@@ -98,7 +98,7 @@ input.msg-search-text-tease {
   font-size: 1.6rem;
   line-height: 2rem;
   padding: 1rem 1.5rem 0;
-  border-bottom: 0.1rem solid #bdbdbb;
+  border-bottom: 0.1rem solid #f2f2f1;
 }
 .msg-header-icons-section {
   display: block;
@@ -143,7 +143,7 @@ input.msg-search-text-tease {
   margin-left: 1ch;
 }
 .msg-header-date-unread {
-  color: #1D8399;
+  color: #82c7d6;
 }
 .msg-header-subject {
   display: block;
@@ -156,7 +156,7 @@ input.msg-search-text-tease {
 }
 .msg-header-snippet {
   display: block;
-  color: #808080;
+  color: #a2a2a2;
   font-size: 1.5rem;
   font-weight: 400;
   white-space: nowrap;
