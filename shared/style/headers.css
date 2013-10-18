@@ -42,11 +42,11 @@ section[role="region"] > header:first-child h1 {
 }
 
 section[role="region"].skin-organic > header:first-child h1 {
-  color: #00BFE4;
+  color: #7b7b7b;
 }
 
 .skin-organic section[role="region"] header:first-child h1 {
-  color: #00BFE4;
+  color: #7b7b7b;
 }
 
 
@@ -143,7 +143,7 @@ section[role="region"] > header:first-child button {
   font-weight: 400;
   font-size: 1.5rem;
   line-height: 1.1em;
-  color: #00BFE4;
+  color: #fff;
   border-radius: 0;
   text-decoration: none;
 }
@@ -209,7 +209,7 @@ section[role="region"] > header:first-child .icon.icon-close {
 
 section[role="region"] > header:first-child .icon.icon-back {
   background-image: url(headers/images/icons/back.png);
-  /*background-image: url(headers/images/icons/back-dark.png);*/
+
 }
 
 .skin-organic section[role="region"] > header:first-child .icon.icon-back {
@@ -217,7 +217,7 @@ section[role="region"] > header:first-child .icon.icon-back {
 }
 
 section[role="region"].skin-organic > header:first-child .icon.icon-back {
-   background-image: url(headers/images/icons/back-dark.png);
+   background-image: url(headers/images/icons/back-blue.png);
 }
 
 
@@ -304,21 +304,21 @@ section[role="region"].skin-dark > header:first-child,
   background-image: url(headers/images/ui/dark/header.png);
 }
 
-section[role="region"].skin-dark > header:first-child menu[type="toolbar"] a:last-child,
+/*section[role="region"].skin-dark > header:first-child menu[type="toolbar"] a:last-child,
 .skin-dark section[role="region"] > header:first-child menu[type="toolbar"] a:last-child,
 section[role="region"].skin-dark > header:first-child menu[type="toolbar"] button:last-child,
 .skin-dark section[role="region"] > header:first-child menu[type="toolbar"] button:last-child {
   background-image: url(headers/images/ui/dark/separator.png);
 }
-
+*/
 /* Navigation links (back, cancel, etc) */
-section[role="region"].skin-dark > header:first-child a:after,
+/*section[role="region"].skin-dark > header:first-child a:after,
 .skin-dark section[role="region"] > header:first-child a:after,
 section[role="region"].skin-dark > header:first-child button:after,
 .skin-dark section[role="region"] > header:first-child button:after {
-  /*background-image: url(headers/images/ui/dark/separator.png);*/
+  background-image: url(headers/images/ui/dark/separator.png);
 }
-
+*/
 section[role="region"].skin-dark header h2,
 .skin-dark section[role="region"] header h2 {
   background: #2e3c3f url(headers/images/ui/organic/subheader.png);
@@ -332,32 +332,39 @@ section[role="region"].skin-dark header h2,
 
 section[role="region"].skin-organic > header:first-child,
 .skin-organic section[role="region"] > header:first-child {
-  /*background-image: url(headers/images/ui/noise-pattern.png), url(headers/images/ui/organic/header.png);
-  background-size: auto;*/
   background-color: #f0f0ed;
-
 }
 
-section[role="region"].skin-organic > header:first-child menu[type="toolbar"] a:last-child,
+/* drawers */
+.skin-organic section[role="region"].drawer > header:first-child{
+  background-color: #252e34;
+}
+
+.skin-organic section[role="region"].drawer > header h1 {
+  color: #fff;
+}
+
+
+/*section[role="region"].skin-organic > header:first-child menu[type="toolbar"] a:last-child,
 .skin-organic section[role="region"] > header:first-child menu[type="toolbar"] a:last-child,
 section[role="region"].skin-organic > header:first-child menu[type="toolbar"] button:last-child,
 .skin-organic section[role="region"] > header:first-child menu[type="toolbar"] button:last-child {
-  /*background-image: url(headers/images/ui/organic/separator.png);*/
+  background-image: url(headers/images/ui/organic/separator.png);
 }
-
+*/
 /* Navigation links (back, cancel, etc) */
-section[role="region"].skin-organic > header:first-child a:after,
+/*section[role="region"].skin-organic > header:first-child a:after,
 .skin-organic section[role="region"] > header:first-child a:after,
 section[role="region"].skin-organic > header:first-child button:after,
 .skin-organic section[role="region"] > header:first-child button:after {
-  /*background-image: url(headers/images/ui/organic/separator.png);*/
+  background-image: url(headers/images/ui/organic/separator.png);
 }
-
+*/
 section[role="region"].skin-organic header h2,
 .skin-organic section[role="region"] header h2 {
   /*background: #5c6a6d url(headers/images/ui/organic/subheader.png);*/
   background-color: #e7e7e7;
-  color: #00bfe4;
+  color: #7b7b7b;
   border: none;
 }
 
