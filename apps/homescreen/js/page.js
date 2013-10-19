@@ -286,9 +286,9 @@ Icon.prototype = {
     var background = new Image();
     background.src = 'style/images/default_background.png';
     background.onload = function icon_loadBackgroundSuccess() {
-      ctx.shadowColor = 'rgba(0,0,0,0.8)';
-      ctx.shadowBlur = 2;
-      ctx.shadowOffsetY = 2;
+      // ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      // ctx.shadowBlur = 2;
+      // ctx.shadowOffsetY = 2;
       ctx.drawImage(background, 2 * SCALE_RATIO, 2 * SCALE_RATIO,
                     MAX_ICON_SIZE * SCALE_RATIO, MAX_ICON_SIZE * SCALE_RATIO);
       // Disable smoothing on icon resize
@@ -321,9 +321,9 @@ Icon.prototype = {
 
     // Collection icons are self contained and should NOT be manipulated
     if (type !== GridItemsFactory.TYPE.COLLECTION) {
-      ctx.shadowColor = 'rgba(0,0,0,0.8)';
-      ctx.shadowBlur = 2;
-      ctx.shadowOffsetY = 2;
+      // ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      // ctx.shadowBlur = 2;
+      // ctx.shadowOffsetY = 2;
     }
 
     // Deal with very small or very large icons
