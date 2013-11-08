@@ -255,6 +255,7 @@ var WindowManager = (function() {
 
   // Execute when the application is actually loaded
   function windowOpened(frame) {
+    console.log(" ----- window opened");
     var iframe = frame.firstChild;
 
     if (displayedApp == iframe.dataset.frameOrigin) {
