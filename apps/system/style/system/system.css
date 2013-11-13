@@ -408,6 +408,7 @@ body {
 }
 
 #windows > .appWindow.closing {
+  transform: translateY(0);
   animation: closeApp 0.3s forwards ease;
 }
 
@@ -420,7 +421,7 @@ body {
 }
 
 #windows > .appWindow.homescreen.zoom-out > iframe {
-  transform: scale(1.8);
+  transform: translateY(100%);
   animation: zoom-out 0.3s forwards ease;
 }
 
@@ -434,9 +435,15 @@ body {
 }
 
 @keyframes zoom-out {
-  0%   { transform: scale(1.8); }
-  100% { transform: scale(1); }
+  /*0%   { transform: scale(1.8); }
+  100% { transform: scale(1); }*/
+
+  0%   { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+
 }
+
+
 
 #screen.cards-view > #windows > .appWindow.closing {
   animation: closeAppTowardsCardView 0.15s forwards ease;
@@ -483,8 +490,12 @@ body {
 }
 
 @keyframes closeApp {
-  0%   { transform: scale(1.0); opacity: 1; }
-  100% { transform: scale(0.1); opacity: 0; }
+  0% {
+    transform: translateY(0%);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
 }
 
 @keyframes closeAppTowardsCardView {
