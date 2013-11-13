@@ -77,6 +77,7 @@ var AirplaneMode = {
 
     var self = this;
     SettingsListener.observe('ril.radio.disabled', false, function(value) {
+      self.element.disabled = false;
       self.element.checked = value;
     });
     this.element.addEventListener('change', function(e) {

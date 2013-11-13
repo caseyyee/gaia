@@ -7,6 +7,8 @@ requireApp('keyboard/test/unit/setup_engine.js');
 requireApp('keyboard/js/imes/jspinyin/jspinyin.js');
 
 suite('jspinyin', function() {
+  this.timeout(10000);  // 10 secs
+
   var NUMBER_OF_CANDIDATES_PER_ROW = 8;
 
   var jspinyin;
@@ -36,11 +38,7 @@ suite('jspinyin', function() {
                       0];
 
   var fakeUserDictNew = [240, 222, 188, 10, 0, 2, 239, 0, 176, 1, 11, 140, 122,
-                         102, 0, 2, 239, 0, 176, 1, 208, 103, 234, 83, 10, 0, 0,
-                         0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 1, 0, 254, 0,
-                         2, 0, 252, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 20, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0];
+                         102, 0, 2, 239, 0, 176, 1, 208, 103, 234, 83, 10];
 
   function mockIndexedDB(args) {
     var receivedData;
@@ -467,7 +465,8 @@ suite('jspinyin', function() {
       callback: function(data) {
         done(function() {
           assert.isTrue(jspinyin.empty.calledOnce);
-          assert.deepEqual(data.content, fakeUserDictNew);
+          assert.deepEqual(data.content.slice(0, fakeUserDictNew.length),
+                           fakeUserDictNew);
         });
       },
       testing: function() {

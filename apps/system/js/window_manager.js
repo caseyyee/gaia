@@ -70,9 +70,8 @@ var WindowManager = (function() {
   var _currentSetOrientationOrigin;
   var _globalOrientation;
 
-  // XXX: Refine this.
   window.addEventListener('globalorientationchanged', function(value) {
-    _globalOrientation = value ? 'portrait-primary' : null;
+    _globalOrientation = value ? OrientationManager.globalOrientation : null;
     setOrientationForApp(_currentSetOrientationOrigin);
   });
 
@@ -714,7 +713,7 @@ var WindowManager = (function() {
     _currentSetOrientationOrigin = origin;
 
     if (origin == null) { // No app is currently running.
-      screen.mozLockOrientation('portrait-primary');
+      screen.mozLockOrientation(OrientationManager.globalOrientation);
       return;
     }
 
@@ -1020,7 +1019,7 @@ var WindowManager = (function() {
           // so Cards View will get a correct screenshot of the frame
           if (config.stayBackground) {
             app.resize(false);
-            app.setVisible(false);
+            app.setVisible(false, true /*screenshot*/);
           }
         } else {
           HomescreenLauncher.getHomescreen().ensure();
@@ -1079,10 +1078,11 @@ var WindowManager = (function() {
     // XXX: Refine this in AttentionWindow
     if (AttentionScreen.isFullyVisible())
       return;
-    if (displayedApp !== HomescreenLauncher.origin) {
+    if (displayedApp && displayedApp !== HomescreenLauncher.origin) {
       runningApps[displayedApp].setVisible(true);
     } else {
-      HomescreenLauncher.getHomescreen().setVisible(true);
+      var homescreen = HomescreenLauncher.getHomescreen();
+      homescreen && homescreen.setVisible(true);
     }
   });
 

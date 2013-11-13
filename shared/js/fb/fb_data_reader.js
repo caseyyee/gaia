@@ -2,6 +2,7 @@
 
 // Reader Module for FB Data in a Datastore
 // To use this library you need to include 'shared/js/fb/fb_request.js'
+// WARNING: This file lazy loads 'shared/js/fb/fb_tel_index.js'
 
 var fb = this.fb || {};
 this.fb = fb;
@@ -21,6 +22,10 @@ this.fb = fb;
   // Custom event for notifying initializations
   var INITIALIZE_EVENT = 'fb_ds_init';
 
+  // Last known revision Id. Used to determine whether the index has to
+  // be reloaded or not
+  var revisionId;
+
   // Creates the internal Object in the datastore that will act as an index
   function createIndex() {
     return {
@@ -31,7 +36,9 @@ this.fb = fb;
       byTel: Object.create(null),
       // By short tel number
       // (We are not supporting dups right now)
-      byShortTel: Object.create(null)
+      byShortTel: Object.create(null),
+      // Prefix tree for enabling searching by partial tel numbers
+      treeTel: Object.create(null)
     };
   }
 
@@ -116,14 +123,15 @@ this.fb = fb;
   };
 
   function doGet(uid, outRequest) {
-    var dsId = index.byUid[uid];
+    var dsId;
 
     var successCb = successGet.bind(null, outRequest);
     var errorCb = errorGet.bind(null, outRequest, uid);
 
-    if (typeof dsId === 'undefined') {
+    if (datastore.revisionId !== revisionId) {
       // Refreshing the index just in case
       datastore.get(INDEX_ID).then(function success_index(obj) {
+        revisionId = datastore.revisionId;
         setIndex(obj);
         dsId = index.byUid[uid];
         if (typeof dsId !== 'undefined') {
@@ -138,12 +146,19 @@ this.fb = fb;
       }, errorCb).then(successCb, errorCb);
     }
     else {
-      datastore.get(dsId).then(successCb, errorCb);
+      dsId = index.byUid[uid];
+      if (typeof dsId === 'number') {
+        datastore.get(dsId).then(successCb, errorCb);
+      }
+      else {
+        outRequest.done(null);
+      }
     }
   }
 
   /**
    *  Allows to get FB information by tel number (short or long)
+   *  The tel number must be complete
    *
    */
   contacts.getByPhone = function(tel) {
@@ -162,18 +177,16 @@ this.fb = fb;
   };
 
   function doGetByPhone(tel, outRequest) {
-    var dsId = index.byTel[tel] || index.byShortTel[tel];
+    var dsId;
 
-    if (typeof dsId !== 'undefined') {
-      datastore.get(dsId).then(function success(friend) {
-        outRequest.done(friend);
-      }, defaultError(outRequest));
-    }
-    else {
+    if (datastore.revisionId !== revisionId) {
+      window.console.info('Datastore revision id has changed!');
       // Refreshing the index just in case
       datastore.get(INDEX_ID).then(function success(obj) {
         setIndex(obj);
+        revisionId = datastore.revisionId;
         dsId = index.byTel[tel] || index.byShortTel[tel];
+
         if (typeof dsId !== 'undefined') {
           datastore.get(dsId).then(function success(friend) {
             outRequest.done(friend);
@@ -187,6 +200,95 @@ this.fb = fb;
         outRequest.failed(err);
       });
     }
+    else {
+      dsId = index.byTel[tel] || index.byShortTel[tel];
+      if (typeof dsId !== 'undefined') {
+        datastore.get(dsId).then(function success(friend) {
+          outRequest.done(friend);
+        }, defaultError(outRequest));
+      }
+      else {
+        outRequest.done(null);
+      }
+    }
+  }
+
+  /**
+   *  Allows to search for friends by different criteria.
+   *  Numbers can be partial and partial matchings will be found
+   *
+   *  by === tel : By Tel number
+   *
+   */
+  contacts.search = function(by, number) {
+    var outRequest = new fb.utils.Request();
+
+    window.setTimeout(function do_search() {
+      contacts.init(function do_search_init() {
+        if (by === 'phone') {
+          doSearchByPhone(number, outRequest);
+        }
+      },
+      function() {
+        initError(outRequest);
+      });
+    }, 0);
+
+    return outRequest;
+  };
+
+
+  function doSearchByPhone(number, outRequest) {
+    LazyLoader.load('/shared/js/fb/fb_tel_index.js', function() {
+      var toSearchNumber = number;
+      // TODO: Temporal way of searching for international numbers
+      // A follow-up is needed by using PhoneNumber.js exposed to Gaia
+      if (number.charAt(0) === '+') {
+        toSearchNumber = number.substring(1);
+      }
+      if (datastore.revisionId !== revisionId) {
+        window.console.info('Datastore revision id has changed!');
+        // Refreshing the index
+        datastore.get(INDEX_ID).then(function success(obj) {
+        setIndex(obj);
+        revisionId = datastore.revisionId;
+        var results = TelIndexer.search(index.treeTel, toSearchNumber);
+        var out = null;
+        if (results.length > 0) {
+          out = datastore.get(results);
+        }
+        else {
+          outRequest.done(results);
+        }
+        return out;
+      },function(err) {
+        window.console.error('The index cannot be refreshed: ', err.name);
+        outRequest.failed(err);
+      }).then(function success(objList) {
+          outRequest.done(objList);
+      }, function error(err) {
+          window.console.error('Error while retrieving result data: ',
+                               err.name);
+          outRequest.failed(err);
+        });
+      }
+      else {
+        var results = TelIndexer.search(index.treeTel, toSearchNumber);
+
+        if (results.length > 0) {
+          datastore.get(results).then(function success(objList) {
+            outRequest.done(objList);
+          }, function error(err) {
+             window.console.error('Error while retrieving result data: ',
+                                  err.name);
+             outRequest.failed(err);
+          });
+        }
+        else {
+          outRequest.done(results);
+        }
+      }
+    });
   }
 
   /**
@@ -300,6 +402,7 @@ this.fb = fb;
         if (typeof v === 'object') {
           setIndex(v);
         }
+        revisionId = datastore.revisionId;
         notifyOpenSuccess(cb);
       });
     }, function error() {

@@ -181,7 +181,9 @@ var Settings = {
 
     // hide telephony related entries if not supportted
     if (!navigator.mozTelephony) {
-      var elements = ['call-settings', 'data-connectivity',
+      var elements = ['call-settings',
+                      'messaging-settings',
+                      'data-connectivity',
                       'simSecurity-settings'];
       elements.forEach(function(el) {
         document.getElementById(el).hidden = true;
@@ -654,11 +656,13 @@ window.addEventListener('load', function loadSettings() {
 
   setTimeout(function nextTick() {
     LazyLoader.load(['js/utils.js'], startupLocale);
+
     LazyLoader.load([
       'js/airplane_mode.js',
       'js/battery.js',
       'shared/js/async_storage.js',
       'js/storage.js',
+      'js/try_show_homescreen_section.js',
       'shared/js/mobile_operator.js',
       'shared/js/wifi_helper.js',
       'shared/js/icc_helper.js',
@@ -672,6 +676,7 @@ window.addEventListener('load', function loadSettings() {
   function handleRadioAndCardState() {
     function disableSIMRelatedSubpanels(disable) {
       var itemIds = ['call-settings',
+                     'messaging-settings',
                      'data-connectivity'];
 
       // Disable SIM security item only in case of SIM absent.

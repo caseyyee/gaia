@@ -19,7 +19,7 @@ const TYPE_GROUP_MAPPING = {
   'textarea': 'text',
   'url': 'url',
   'email': 'email',
-  'password': 'password',
+  'password': 'text',
   'search': 'text',
   // number
   'number': 'number',
@@ -57,7 +57,7 @@ var KeyboardManager = {
    *
    * Each element in the arrays represents a keyboard layout:
    * {
-   *    id: the unique id of the keyboard, the key of entry_point
+   *    id: the unique id of the keyboard, the key of inputs
    *    name: the keyboard layout's name
    *    appName: the keyboard app name
    *    origin: the keyboard's origin
@@ -133,6 +133,7 @@ var KeyboardManager = {
     window.addEventListener('appwillclose', this);
     window.addEventListener('activitywillclose', this);
     window.addEventListener('attentionscreenshow', this);
+    window.addEventListener('mozbrowsererror', this);
 
     // To handle keyboard layout switching
     window.addEventListener('mozChromeEvent', function(evt) {
@@ -174,7 +175,7 @@ var KeyboardManager = {
     function reduceLayouts(carry, layout) {
       enabledApps.add(layout.app.origin);
       // add the layout to each type and return the carry
-      layout.entryPoint.types.filter(KeyboardHelper.isKeyboardType)
+      layout.inputManifest.types.filter(KeyboardHelper.isKeyboardType)
         .forEach(function(type) {
           if (!carry[type]) {
             carry[type] = [];
@@ -183,14 +184,14 @@ var KeyboardManager = {
           var enabledLayout = {
             id: layout.layoutId,
             origin: layout.app.origin,
-            path: layout.entryPoint.launch_path
+            path: layout.inputManifest.launch_path
           };
 
           // define properties for name that resolve at display time
           // to the correct language via the ManifestHelper
           Object.defineProperties(enabledLayout, {
             name: {
-              get: getName.bind(layout.entryPoint),
+              get: getName.bind(layout.inputManifest),
               enumerable: true
             },
             appName: {
@@ -231,9 +232,10 @@ var KeyboardManager = {
       }
     }, this);
 
-    // if there are no keyboards running - set text to show
+    // if there are no keyboards running - set text to show,
+    // but don't bring it to the foreground.
     if (!Object.keys(this.runningLayouts).length) {
-      this.setKeyboardToShow('text');
+      this.setKeyboardToShow('text', undefined, true);
     }
   },
 
@@ -411,7 +413,6 @@ var KeyboardManager = {
       case 'appwillclose':
         this.hideKeyboardImmediately();
         break;
-      //XXX the following case hasn't been tested.
       case 'mozbrowsererror': // OOM
         var origin = evt.target.dataset.frameOrigin;
         this.removeKeyboard(origin);
@@ -442,7 +443,7 @@ var KeyboardManager = {
     delete this.runningLayouts[origin];
   },
 
-  setKeyboardToShow: function km_setKeyboardToShow(group, index) {
+  setKeyboardToShow: function km_setKeyboardToShow(group, index, launchOnly) {
     if (!this.keyboardLayouts[group]) {
       console.warn('trying to set a layout group to show that doesnt exist');
       return;
@@ -455,6 +456,15 @@ var KeyboardManager = {
     this.showingLayout.index = index;
     var layout = this.keyboardLayouts[group][index];
     this.showingLayout.frame = this.launchLayoutFrame(layout);
+
+    // By setting launchOnly to true, we load the keyboard frame w/o bringing it
+    // to the foreground; this is effectively equal to calling
+    // setKeyboardToShow() *then* call resetShowingKeyboard().
+    if (launchOnly) {
+      this.showingLayout.frame.hidden = true;
+      return;
+    }
+
     this.showingLayout.frame.hidden = false;
     this.setLayoutFrameActive(this.showingLayout.frame, true);
     this.showingLayout.frame.addEventListener(
@@ -615,6 +625,8 @@ var KeyboardManager = {
     var self = this;
     var showed = this.showingLayout;
     var activeLayout = this.keyboardLayouts[showed.type].activeLayout;
+    var _ = navigator.mozL10n.get;
+    var actionMenuTitle = _('layout-selection');
 
     this.switchChangeTimeout = setTimeout(function keyboardLayoutList() {
       var items = [];
@@ -632,7 +644,7 @@ var KeyboardManager = {
       });
       self.hideKeyboard();
 
-      ActionMenu.open(items, 'Layout selection', function(selectedIndex) {
+      ActionMenu.open(items, actionMenuTitle, function(selectedIndex) {
         if (!self.keyboardLayouts[showed.type])
           showed.type = 'text';
         self.keyboardLayouts[showed.type].activeLayout = selectedIndex;
