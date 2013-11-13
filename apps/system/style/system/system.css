@@ -408,7 +408,7 @@ body {
 }
 
 #windows > .appWindow.closing {
-  transform: translateY(0);
+  transform: translateX(0);
   animation: closeApp 0.3s forwards ease;
 }
 
@@ -438,8 +438,8 @@ body {
   /*0%   { transform: scale(1.8); }
   100% { transform: scale(1); }*/
 
-  0%   { transform: translateY(100%); }
-  100% { transform: translateY(0); }
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(0); }
 
 }
 
@@ -491,10 +491,10 @@ body {
 
 @keyframes closeApp {
   0% {
-    transform: translateY(0%);
+    transform: translateX(0%);
   }
   100% {
-    transform: translateY(-100%);
+    transform: translateX(-100%);
   }
 }
 
