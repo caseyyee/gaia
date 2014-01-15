@@ -67,6 +67,7 @@ var Wallpaper = {
             context.drawImage(img, 0, 0);
 
             var colorsArray = self.getImageColors(context, canvas.width, canvas.height, 15);
+            var colorScaleArray = self.scaleColors(colorsArray[0], colorsArray[1], 15);
 
             canvas.toBlob(function(blob) {
                 self.pickActivity.postResult({
@@ -90,7 +91,7 @@ var Wallpaper = {
 
         var x, y;
         var bmpArray = [];
-        var colorArray = [];
+        var rgbArray = [];
 
         for (var row = 0; row < rows; row++) {
             y = parseInt((imageHeight / rows) * row);
@@ -109,10 +110,29 @@ var Wallpaper = {
 
         var paletteLength = palette.length;
         for (var index = 0; index < paletteLength; index++) {
-            colorArray.push(palette[index][0] + ',' + palette[index][1] + ',' + palette[index][2]);
+            rgbArray.push(palette[index]);
         };
 
-        return colorArray;
+        // take the first two colors
+        var c = chroma.rgb(rgbArray[0]);
+        var colorsArray = [];
+        colorsArray.push(c.rgb()); // base color
+        colorsArray.push(c.darker(10).rgb()); // darker
+        colorsArray.push(c.darker(15).rgb());
+        colorsArray.push(c.darker(20).rgb());
+
+
+
+        return colorsArray;
+    },
+
+    scaleColors: function wallpaper_scaleColors(color1, color2, colors) {
+        var scale = chroma.scale(color1, color2);
+        var colorValueArray = [];
+        for (var i = 0; i < colors; i++) {
+            colorValueArray.push(scale(i / colors));
+        }
+        return colorValueArray;
     },
 
     cancelPick: function wallpaper_cancelPick() {

@@ -419,13 +419,11 @@ var NotificationScreen = {
                     oldLockScreenNode
                 );
             } else {
-                var colorIndex = this.lockScreenContainer.childElementCount;
-                if (colorIndex < 0) colorIndex = 0;
-                lockScreenNode.style.backgroundColor = 'rgba(' + this.colors[colorIndex] + ',0.8)';
                 this.lockScreenContainer.insertBefore(
                     lockScreenNode,
                     this.lockScreenContainer.firstElementChild
                 );
+                this.colorNotifications();
             }
         }
 
@@ -458,6 +456,20 @@ var NotificationScreen = {
         this.clearAllButton.disabled = false;
 
         return notificationNode;
+    },
+
+    colorNotifications: function ns_colorNotifications() {
+        for (var i = 0; i < this.lockScreenContainer.childElementCount; i++) {
+            var useIndex;
+            if (i < this.colors.length) {
+                useIndex = i;
+            } else {
+                useIndex = this.colors.length;
+            }
+
+            var c = this.colors[useIndex][0] + ',' + this.colors[useIndex][1] + ',' + this.colors[useIndex][2] + ',0.8';
+            this.lockScreenContainer.children[i].style.backgroundColor = 'rgba(' + c + ')';
+        }
     },
 
     closeNotification: function ns_closeNotification(notificationNode) {
