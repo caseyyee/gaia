@@ -144,6 +144,8 @@ html, body {
   color: #fff;
 }
 
+
+
 .notification > div {
   width: calc(100% - 6.5rem);
   margin-left: 5rem;
@@ -194,7 +196,7 @@ html, body {
 
 #notifications-lockscreen-container {
   position: absolute;
-  top: 18rem;
+  top: 18.5rem;
   left: 0;
   width: 100%;
   max-height: 18.6rem;
@@ -208,6 +210,30 @@ html, body {
   background-color: transparent;
   border-top: 1px solid transparent;
   border-bottom: 1px solid transparent;
+}
+
+#notifications-lockscreen-container .notification > div:first-of-type {
+  font-weight: normal;
+  font-style:italic;
+  color: #fff;
+}
+
+#notifications-lockscreen-container .notification > div:first-of-type {
+  font-weight: normal;
+  font-style:italic;
+  color: #fff;
+}
+
+#notifications-lockscreen-container .notification > div {
+  font-weight:lighter;
+  font-style:italic;
+  color: #fff;
+}
+
+#notifications-lockscreen-container .notification > .timestamp {
+  font-weight: lighter;
+  font-style:italic;
+  color: #fff;
 }
 
 
