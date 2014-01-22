@@ -116,12 +116,11 @@ var Wallpaper = {
         // take the first two colors
         var c = chroma.rgb(rgbArray[0]);
         var colorsArray = [];
-        colorsArray.push(c.rgb()); // base color
-        colorsArray.push(c.darker(10).rgb()); // darker
-        colorsArray.push(c.darker(15).rgb());
+    
         colorsArray.push(c.darker(20).rgb());
-
-
+        colorsArray.push(c.darker(15).rgb());
+        colorsArray.push(c.darker(10).rgb()); // darker
+        colorsArray.push(c.rgb()); // base color
 
         return colorsArray;
     },

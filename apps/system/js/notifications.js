@@ -461,10 +461,10 @@ var NotificationScreen = {
     colorNotifications: function ns_colorNotifications() {
         for (var i = 0; i < this.lockScreenContainer.childElementCount; i++) {
             var useIndex;
-            if (i < this.colors.length) {
-                useIndex = i;
-            } else {
+            if (i > this.colors.length) {
                 useIndex = this.colors.length;
+            } else {
+                useIndex = i;
             }
 
             var c = this.colors[useIndex][0] + ',' + this.colors[useIndex][1] + ',' + this.colors[useIndex][2] + ',0.8';
