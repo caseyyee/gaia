@@ -6,11 +6,11 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(10rem + 1px);
-  height: 12rem;
-  background: rgba(0, 0, 0, 0.75);
-  border-top: 1px solid #9c9a9c;
-  border-bottom: 1px solid black;
+  bottom: 10rem;
+  height: 13.6rem;
+  background: rgba(0, 0, 0, 0.9);
+  border-top: 1px solid rgba(255,255,255,0.3);
+  -moz-box-sizing: border-box;
 }
 
 /* The "Now Playing" section */
@@ -21,6 +21,7 @@
 }
 
 .media-playback-nowplaying > .icon {
+  display: none;
   position: relative;
   float: left;
   width: 3rem;
@@ -32,7 +33,7 @@
 }
 
 .media-playback-nowplaying > .albumart {
-  float: right;
+  float: left;
   width: 3rem;
   height: 3rem;
   margin: 0.5rem 0;
@@ -51,14 +52,14 @@
 
 .media-playback-nowplaying > .title {
   font-size: 1.5rem;
-  font-weight: 500;
+  font-weight: normal;
   color: #ffffff;
 }
 
 .media-playback-nowplaying > .artist {
   font-size: 1.4rem;
-  font-weight: 400;
-  color: #bfbfbf;
+  font-weight: normal;
+  color: #ffffff;
 }
 
 /* The playback controls section */
@@ -107,7 +108,7 @@
 /* Overrides for the larger-sized playback controls */
 
 .media-playback-controls.big {
-  height: 7rem;
+  height: 8rem;
 }
 
 .media-playback-controls.big > .previous {
