@@ -18,7 +18,6 @@ apps/browser/test/marionette/navigate_test.js
 apps/browser/test/marionette/settings_test.js
 apps/browser/test/marionette/share_url_test.js
 apps/browser/test/unit/browser_db_test.js
-apps/browser/test/unit/utilities_test.js
 apps/calendar/caldav_worker.js
 apps/calendar/js/app.js
 apps/calendar/js/calc.js
@@ -89,7 +88,6 @@ apps/calendar/js/views/month.js
 apps/calendar/js/views/month_child.js
 apps/calendar/js/views/months_day.js
 apps/calendar/js/views/settings.js
-apps/calendar/js/views/time_header.js
 apps/calendar/js/views/time_parent.js
 apps/calendar/js/views/view_event.js
 apps/calendar/js/views/week.js
@@ -97,11 +95,8 @@ apps/calendar/js/views/week_child.js
 apps/calendar/js/worker/manager.js
 apps/calendar/js/worker/thread.js
 apps/calendar/test/assertions.js
-apps/calendar/test/marionette/calendar.js
-apps/calendar/test/marionette/create_event_test.js
 apps/calendar/test/marionette/day_view_test.js
 apps/calendar/test/marionette/today_test.js
-apps/calendar/test/marionette/week_view_test.js
 apps/calendar/test/unit/app_test.js
 apps/calendar/test/unit/calc_test.js
 apps/calendar/test/unit/calendar_test.js
@@ -182,7 +177,6 @@ apps/calendar/test/unit/views/month_child_test.js
 apps/calendar/test/unit/views/month_test.js
 apps/calendar/test/unit/views/months_day_test.js
 apps/calendar/test/unit/views/settings_test.js
-apps/calendar/test/unit/views/time_header_test.js
 apps/calendar/test/unit/views/time_parent_test.js
 apps/calendar/test/unit/views/view_event_test.js
 apps/calendar/test/unit/views/week_child_test.js
@@ -263,14 +257,12 @@ apps/clock/test/unit/timer_panel_test.js
 apps/clock/test/unit/timer_test.js
 apps/clock/test/unit/utils_test.js
 apps/clock/test/unit/view_test.js
-apps/communications/contacts/js/activities.js
 apps/communications/contacts/js/contacts.js
 apps/communications/contacts/js/contacts_cleaner.js
 apps/communications/contacts/js/contacts_importer.js
 apps/communications/contacts/js/contacts_matcher.js
 apps/communications/contacts/js/contacts_matching_controller.js
 apps/communications/contacts/js/contacts_matching_ui.js
-apps/communications/contacts/js/contacts_merger.js
 apps/communications/contacts/js/contacts_shortcuts.js
 apps/communications/contacts/js/contacts_tag.js
 apps/communications/contacts/js/export/bt.js
@@ -296,7 +288,6 @@ apps/communications/contacts/js/importer_ui.js
 apps/communications/contacts/js/navigation.js
 apps/communications/contacts/js/service_extensions.js
 apps/communications/contacts/js/sms_integration.js
-apps/communications/contacts/js/utilities/binary_search.js
 apps/communications/contacts/js/utilities/config.js
 apps/communications/contacts/js/utilities/confirm.js
 apps/communications/contacts/js/utilities/event_listeners.js
@@ -328,11 +319,9 @@ apps/communications/contacts/test/marionette/form_test.js
 apps/communications/contacts/test/marionette/lib/contacts.js
 apps/communications/contacts/test/marionette/lib/sms.js
 apps/communications/contacts/test/marionette/search_test.js
-apps/communications/contacts/test/unit/contacts_activities_test.js
 apps/communications/contacts/test/unit/contacts_matcher_test.js
 apps/communications/contacts/test/unit/contacts_matching_ui_test.js
 apps/communications/contacts/test/unit/contacts_matching_ui_test_data.js
-apps/communications/contacts/test/unit/contacts_merger_test.js
 apps/communications/contacts/test/unit/contacts_tag_test.js
 apps/communications/contacts/test/unit/datastore_migrator_test.js
 apps/communications/contacts/test/unit/export/bt_test.js
@@ -340,7 +329,6 @@ apps/communications/contacts/test/unit/export/generic_export_test.js
 apps/communications/contacts/test/unit/export/sim_test.js
 apps/communications/contacts/test/unit/fb_data_test.js
 apps/communications/contacts/test/unit/fb_reader_utils_test.js
-apps/communications/contacts/test/unit/fb_tel_index_test.js
 apps/communications/contacts/test/unit/helper.js
 apps/communications/contacts/test/unit/import_vcard_test.js
 apps/communications/contacts/test/unit/link_test.js
@@ -452,7 +440,6 @@ apps/communications/dialer/test/unit/mock_simple_phone_matcher.js
 apps/communications/dialer/test/unit/mock_utils.js
 apps/communications/dialer/test/unit/simple_phone_matcher_test.js
 apps/communications/dialer/test/unit/suggestion_bar_test.js
-apps/communications/dialer/test/unit/telephony_helper_test.js
 apps/communications/dialer/test/unit/utils_test.js
 apps/communications/dialer/test/unit/voicemail_test.js
 apps/communications/facebook/js/console.js
@@ -633,7 +620,6 @@ apps/email/shared/js/idletimer.js
 apps/email/shared/js/l10n.js
 apps/email/shared/js/lazy_l10n.js
 apps/email/shared/js/lazy_loader.js
-apps/email/shared/js/manifest_helper.js
 apps/email/shared/js/media/get_video_rotation.js
 apps/email/shared/js/media/jpeg_metadata_parser.js
 apps/email/shared/js/media/media_frame.js
@@ -858,21 +844,13 @@ apps/search/js/eme/api.js
 apps/search/js/eme/eme.js
 apps/search/js/providers/app_provider.js
 apps/search/js/providers/contacts.js
-apps/search/js/providers/local_apps.js
-apps/search/js/providers/marketplace.js
-apps/search/js/providers/places.js
-apps/search/js/providers/provider.js
 apps/search/js/providers/suggestions.js
-apps/search/js/providers/webresults.js
 apps/search/js/search.js
 apps/search/test/marionette/app_search_test.js
-apps/search/test/marionette/contacts_search_test.js
 apps/search/test/marionette/lib/search.js
 apps/search/test/marionette/navigation_test.js
-apps/search/test/marionette/places_search_test.js
 apps/search/test/unit/mock_search.js
 apps/search/test/unit/providers/contacts_test.js
-apps/search/test/unit/providers/local_apps_test.js
 apps/search/test/unit/providers/marketplace_test.js
 apps/search/test/unit/providers/provider_test.js
 apps/search/test/unit/providers/suggestions_test.js
@@ -881,7 +859,6 @@ apps/search/test/unit/search_test.js
 apps/setringtone/js/share.js
 apps/settings/js/about.js
 apps/settings/js/about_more_info.js
-apps/settings/js/about_more_info_developer.js
 apps/settings/js/airplane_mode.js
 apps/settings/js/app_storage.js
 apps/settings/js/apps.js
@@ -934,6 +911,7 @@ apps/settings/js/wifi_select_certificate_file.js
 apps/settings/test/integration/app.js
 apps/settings/test/marionette/app/app.js
 apps/settings/test/marionette/app/base.js
+apps/settings/test/marionette/app/regions/battery.js
 apps/settings/test/marionette/app/regions/bluetooth.js
 apps/settings/test/marionette/app/regions/do_not_track.js
 apps/settings/test/marionette/app/regions/hotspot.js
@@ -994,7 +972,6 @@ apps/system/js/app_chrome.js
 apps/system/js/app_install_manager.js
 apps/system/js/app_modal_dialog.js
 apps/system/js/app_transition_controller.js
-apps/system/js/app_window.js
 apps/system/js/app_window_factory.js
 apps/system/js/app_window_manager.js
 apps/system/js/applications.js
@@ -1045,7 +1022,6 @@ apps/system/js/logo_loader.js
 apps/system/js/media_playback.js
 apps/system/js/media_recording.js
 apps/system/js/modal_dialog.js
-apps/system/js/net_error.js
 apps/system/js/nfc_handover.js
 apps/system/js/nfc_handover_manager.js
 apps/system/js/nfc_manager.js
@@ -1056,7 +1032,6 @@ apps/system/js/operator_variant/operator_variant_iccs.js
 apps/system/js/orientation_manager.js
 apps/system/js/payment.js
 apps/system/js/permission_manager.js
-apps/system/js/places.js
 apps/system/js/popup_manager.js
 apps/system/js/quick_settings.js
 apps/system/js/remote_debugger.js
@@ -1081,7 +1056,6 @@ apps/system/js/system.js
 apps/system/js/system_banner.js
 apps/system/js/system_dialog.js
 apps/system/js/telephony_settings.js
-apps/system/js/title.js
 apps/system/js/trusted_ui.js
 apps/system/js/ttlview.js
 apps/system/js/updatable.js
@@ -1094,11 +1068,12 @@ apps/system/js/value_selector/value_selector.js
 apps/system/js/visibility_manager.js
 apps/system/js/voicemail.js
 apps/system/js/wifi.js
-apps/system/js/wrapper_factory.js
 apps/system/test/marionette/edges_gesture_test.js
 apps/system/test/marionette/fakemusic/js/comms.js
 apps/system/test/marionette/fakemusic/js/fakemusic.js
+apps/system/test/marionette/fullscreen_app_alert_test.js
 apps/system/test/marionette/lib/fake_music.js
+apps/system/test/marionette/lib/fullscreen_app.js
 apps/system/test/marionette/lib/media_playback.js
 apps/system/test/marionette/lib/notification.js
 apps/system/test/marionette/lib/system.js
@@ -1161,7 +1136,6 @@ apps/system/test/unit/layout_manager_test.js
 apps/system/test/unit/lockscreen_conn_info_manager_test.js
 apps/system/test/unit/lockscreen_test.js
 apps/system/test/unit/logo_loader_test.js
-apps/system/test/unit/manifest_helper_test.js
 apps/system/test/unit/media_recording_test.js
 apps/system/test/unit/mobile_operator_test.js
 apps/system/test/unit/mock_activity.js
@@ -1190,7 +1164,6 @@ apps/system/test/unit/mock_iac_handler.js
 apps/system/test/unit/mock_iachandler.js
 apps/system/test/unit/mock_icc_manager.js
 apps/system/test/unit/mock_keyboard_manager.js
-apps/system/test/unit/mock_l10n.js
 apps/system/test/unit/mock_layout_manager.js
 apps/system/test/unit/mock_lock_screen.js
 apps/system/test/unit/mock_media_files.js
@@ -1235,7 +1208,6 @@ apps/system/test/unit/stack_manager_test.js
 apps/system/test/unit/statusbar_test.js
 apps/system/test/unit/storage_watcher_test.js
 apps/system/test/unit/template_test.js
-apps/system/test/unit/title_test.js
 apps/system/test/unit/updatable_test.js
 apps/system/test/unit/update_manager_test.js
 apps/system/test/unit/utility_tray_test.js
@@ -1285,7 +1257,6 @@ shared/js/dump.js
 shared/js/fb/fb_data_reader.js
 shared/js/fb/fb_reader_utils.js
 shared/js/fb/fb_request.js
-shared/js/fb/fb_tel_index.js
 shared/js/format.js
 shared/js/fxa_iac_client.js
 shared/js/gesture_detector.js
@@ -1299,7 +1270,6 @@ shared/js/lazy_l10n.js
 shared/js/lazy_loader.js
 shared/js/lazyloader.js
 shared/js/lockscreen_slide.js
-shared/js/manifest_helper.js
 shared/js/media/get_video_rotation.js
 shared/js/media/jpeg_metadata_parser.js
 shared/js/media/media_frame.js
@@ -1322,7 +1292,6 @@ shared/js/tag_visibility_monitor.js
 shared/js/template.js
 shared/js/text_normalizer.js
 shared/js/tz_select.js
-shared/js/url_helper.js
 shared/js/visibility_monitor.js
 shared/js/wifi_helper.js
 shared/resources/apn/query.js

@@ -173,10 +173,12 @@ function init() {
     // select the mix page so we have to change the hash to it to trigger the
     // css pseudo-class or the tab of mix page will not be highlighted.
     // Also the option of the TabBar should be set to "mix" to sync with it.
-    window.location.hash = '#mix';
-    TabBar.option = 'mix';
-    ModeManager.start(MODE_TILES);
-    TilesView.hideSearch();
+    if (!pendingPick) {
+      window.location.hash = '#mix';
+      TabBar.option = 'mix';
+      ModeManager.start(MODE_TILES);
+      TilesView.hideSearch();
+    }
   };
 
   musicdb.onready = function() {
@@ -555,6 +557,10 @@ var ModeManager = {
           PlayerView.init();
           PlayerView.setOptions(playerSettings);
         }
+
+        // Update the SCO status because when SCO is connected, we have to
+        // disable the player and show a message to the user.
+        MusicComms.updateSCOStatus();
 
         if (callback)
           callback();

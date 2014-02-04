@@ -24,6 +24,7 @@
     <script defer src="shared/js/lazy_loader.js"></script>
     <script defer src="shared/js/screen_layout.js"></script>
     <script defer src="shared/js/iac_handler.js"></script>
+    <script defer src="js/touch_forwarder.js"></script>
 
     <script defer src="js/system.js"></script>
     <script defer src="js/base_ui.js"></script>
@@ -34,9 +35,12 @@
     <script defer src="shared/js/keyboard_helper.js"></script>
     <script defer src="shared/js/template.js"></script>
     -->
+
     <!-- SIMSlot -->
     <script type="text/javascript" defer src="js/simslot.js"></script>
     <script type="text/javascript" defer src="js/simslot_manager.js"></script>
+    <script type="text/javascript" defer src="js/sim_settings_helper.js"></script>
+
 
     <!-- Wrapper -->
     <link rel="stylesheet" type="text/css" href="style/wrapper/wrapper.css">
@@ -120,9 +124,6 @@
     <link rel="stylesheet" type="text/css" href="shared/style/action_menu.css">
     <link rel="stylesheet" type="text/css" href="style/action_menu/action_menu_extended.css">
     <script defer src="js/action_menu.js"></script>
-
-    <!-- Context Menu -->
-    <script defer src="js/context_menu.js"></script>
 
     <!-- Statusbar -->
     <link rel="stylesheet" type="text/css" href="style/statusbar/statusbar.css">
@@ -268,8 +269,8 @@
 
     <!-- Operator Variant Mechanism -->
     <script defer src="shared/js/operator_variant_helper.js"></script>
-    <script defer src="js/operator_variant/operator_variant_iccs.js"></script>
     <script defer src="js/operator_variant/operator_variant.js"></script>
+    <script defer src="js/operator_variant/operator_variant_iccs.js"></script>
 
     <!-- Crash Reporter -->
     <link rel="stylesheet" type="text/css" href="style/crash_reporter/crash_reporter.css">
@@ -292,6 +293,7 @@
     <!-- homescreen from being displayed must come before this script. -->
     <link rel="stylesheet" type="text/css" href="style/window.css">
     <script defer src="js/base_ui.js"></script>
+    <script defer src="js/browser_context_menu.js"></script>
     <script defer src="js/app_modal_dialog.js"></script>
     <script defer src="js/app_chrome.js"></script>
     <script defer src="js/app_transition_controller.js"></script>
@@ -307,8 +309,15 @@
     <script defer src="js/activity_window_factory.js"></script>
     <script defer src="js/app_window_factory.js"></script>
     <script defer src="js/app_window_manager.js"></script>
+    <script defer src="js/secure_window.js"></script>
+    <script defer src="js/secure_window_factory.js"></script>
+    <script defer src="js/secure_window_manager.js"></script>
     <script defer src="js/visibility_manager.js"></script>
     <script defer src="js/layout_manager.js"></script>
+
+    <!-- Devtools -->
+    <link rel="stylesheet" type="text/css" href="style/devtools_layers.css">
+    <script defer src="js/devtools_layers.js"></script>
 
     <!-- Edge Gestures -->
     <script defer src="js/stack_manager.js"></script>
@@ -343,6 +352,7 @@
     <script defer src="js/dialercomms.js"></script>
 
     <!-- Rocketbar -->
+    <script defer src="js/browser.js"></script>
     <script defer src="js/rocketbar.js"></script>
     <script defer src="js/title.js"></script>
     <script defer src="shared/js/url_helper.js"></script>
@@ -692,7 +702,7 @@
                 A crash report contains some details about the crash and your device, as well as a snapshot of the state of your device when it crashed.</li>
                 <li class="description" data-l10n-id="crash-reports-description-2">This may include things like open pages and apps, text typed into forms and the content of open messages, recent browsing history, or geolocation used by an open app.</li>
                 <li class="description">
-                  <span data-l10n-id="crash-reports-description-3-start">We use crash reports to try to fix problems and improve our products. We handle your information as we describe in our</span><span data-l10n-id="crash-reports-description-3-privacy">privacy policy</span><span data-l10n-id="crash-reports-description-3-end">.</span>
+                  <span data-l10n-id="crash-reports-description-3-start">We use crash reports to try to fix problems and improve our products. We handle your information as we describe in our </span><span data-l10n-id="crash-reports-description-3-privacy">privacy policy</span><span data-l10n-id="crash-reports-description-3-end">.</span>
                 </li>
               </ul>
             </div>
@@ -1256,6 +1266,7 @@
         </div>
       </div>
 
+      <div id="top-panel" class="gesture-panel" data-z-index-level="gesture-panel"></div>
       <div id="left-panel" class="gesture-panel disabled" data-z-index-level="gesture-panel"></div>
       <div id="right-panel" class="gesture-panel disabled" data-z-index-level="gesture-panel"></div>
       <div id="bottom-panel" class="gesture-panel" data-z-index-level="gesture-panel"></div>

@@ -172,17 +172,10 @@ var NfcManager = {
   handleEvent: function nm_handleEvent(evt) {
     var state = this.NFC_HW_STATE_ENABLE_DISCOVERY;
     switch (evt.type) {
-      case 'screenchange':
-        if (true === this.acceptNfcEvents()) {
-          state = this.NFC_HW_STATE_ENABLE_DISCOVERY;
-        } else {
-          state = this.NFC_HW_STATE_DISABLE_DISCOVERY;
-        }
-        this.dispatchHardwareChangeEvt(state);
-        break;
       case 'lock': // Fall thorough
       case 'unlock':
-        if (evt.type === 'unlock') {
+      case 'screenchange':
+        if ((evt.detail && evt.detail.screenEnabled) && !LockScreen.locked) {
           state = this.NFC_HW_STATE_ENABLE_DISCOVERY;
         } else {
           state = this.NFC_HW_STATE_DISABLE_DISCOVERY;
@@ -328,12 +321,7 @@ var NfcManager = {
   },
 
   dispatchP2PUserResponse: function nm_dispatchP2PUserResponse(manifestURL) {
-    var detail = { manifestUrl: manifestURL };
-    var evt = new CustomEvent('nfc-p2p-user-accept', {
-      bubbles: true, cancelable: true,
-      detail: detail
-    });
-    window.dispatchEvent(evt);
+    window.navigator.mozNfc.notifyUserAcceptedP2P(manifestURL);
   },
 
   fireTagDiscovered: function nm_fireTagDiscovered(command) {
@@ -359,7 +347,7 @@ var NfcManager = {
 
     if (!this.acceptNfcEvents()) {
       this._debug(
-        'Ignoring NFC technology tag message. Screen state is disabled.');
+        'Ignoring NFC technology tag message. NFC is in disabled state.');
       return;
     }
     // UX: TODO

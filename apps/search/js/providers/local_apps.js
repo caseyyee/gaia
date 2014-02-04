@@ -1,3 +1,5 @@
+/* global Provider, Search */
+
 (function() {
 
   'use strict';
@@ -13,7 +15,7 @@
 
   LocalApps.prototype = {
 
-    __proto__: AppProvider.prototype,
+    __proto__: Provider.prototype,
 
     name: 'LocalApps',
 
@@ -22,7 +24,6 @@
 
       var manifestURL = target.dataset.manifest;
       if (manifestURL && this.apps[manifestURL]) {
-        Search.close();
         if (target.dataset.entryPoint) {
           this.apps[manifestURL].launch(
             target.dataset.entryPoint
@@ -54,6 +55,11 @@
           a.href = result.origin;
           imgUrl = a.protocol + '//' + a.host + icons[i];
           break;
+        }
+
+        // Only display results which have icons.
+        if (!imgUrl) {
+          return;
         }
 
         formatted.push({

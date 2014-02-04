@@ -1,10 +1,14 @@
+/* global ConfirmDialog, MocksHelper, MockIccHelper, MockMozL10n,
+   MockMozMobileConnection, MockMozTelephony, MockNavigatorSettings,
+   MockTonePlayer, TelephonyHelper */
+
 'use strict';
 
 requireApp('communications/dialer/test/unit/mock_lazy_loader.js');
 requireApp('communications/dialer/test/unit/mock_contacts.js');
 requireApp('communications/dialer/test/unit/mock_confirm_dialog.js');
 requireApp('communications/dialer/test/unit/mock_l10n.js');
-requireApp('communications/shared/test/unit/mocks/mock_navigator_moz_settings.js');
+require('/shared/test/unit/mocks/mock_navigator_moz_settings.js');
 
 requireApp('communications/dialer/test/unit/mock_moztelephony.js');
 requireApp('communications/dialer/test/unit/mock_mozMobileConnection.js');
@@ -93,26 +97,41 @@ suite('telephony helper', function() {
     mockTelephony.verify();
   });
 
-  suite('should dialEmergency if the card state is unknown',
-    function() {
-      var initialState;
+  suite('Emergency dialing >', function() {
+    var initialState;
 
+    setup(function() {
+      initialState = MockIccHelper.mCardState;
+      MockIccHelper.mCardState = 'unknown';
+      MockMozMobileConnection.voice.emergencyCallsOnly = true;
+    });
+
+    teardown(function() {
+      MockIccHelper.mCardState = initialState;
+    });
+
+    suite('when there is no sim card', function() {
       setup(function() {
-        initialState = MockIccHelper.mCardState;
-        MockIccHelper.mCardState = 'unknown';
+        MockMozMobileConnection.iccId = null;
       });
 
-      teardown(function() {
-        MockIccHelper.mCardState = initialState;
-      });
-
-      test('and emergency call are allowed', function() {
-        MockMozMobileConnection.voice.emergencyCallsOnly = true;
+      test('it should always dial emergency with the first service',
+      function() {
         var dialNumber = '112';
-        mockTelephony.expects('dialEmergency').withArgs('112');
+        mockTelephony.expects('dialEmergency').withArgs('112', 0);
         subject.call(dialNumber);
         mockTelephony.verify();
       });
+    });
+
+    suite('when there is a sim card', function() {
+      test('it should dial emergency with the default service', function() {
+        var dialNumber = '112';
+        mockTelephony.expects('dialEmergency').withArgs('112', undefined);
+        subject.call(dialNumber);
+        mockTelephony.verify();
+      });
+    });
   });
 
   test('should dialEmergency if the connection is emergency only',
@@ -142,7 +161,7 @@ suite('telephony helper', function() {
     mockTelephony.verify();
 
     assert.isTrue(holdStub.calledBefore(dialSpy));
-    assert.isUndefined(mockActive.onheld);
+    assert.isNull(mockActive.onheld);
   });
 
   test('should hold the active group call before dialing (if there is one)',
@@ -162,7 +181,7 @@ suite('telephony helper', function() {
     mockTelephony.verify();
 
     assert.isTrue(holdStub.calledBefore(dialSpy));
-    assert.isUndefined(MockMozTelephony.conferenceGroup.onheld);
+    assert.isNull(MockMozTelephony.conferenceGroup.onheld);
   });
 
   test('should not dial when call limit reached (2 normal call)', function() {
@@ -255,7 +274,7 @@ suite('telephony helper', function() {
         subject.call('123');
         mockCall.onerror(createCallError('BadNumberError'));
         assert.isTrue(spyConfirmShow.calledWith('emergencyDialogTitle',
-                                                'emergencyDialogBodyBadNumber'));
+                                               'emergencyDialogBodyBadNumber'));
       });
     });
 
@@ -269,6 +288,13 @@ suite('telephony helper', function() {
     test('should handle FDNBlockedError', function() {
       subject.call('123');
       mockCall.onerror(createCallError('FDNBlockedError'));
+      assert.isTrue(spyConfirmShow.calledWith('fdnIsEnabledTitle',
+                                              'fdnIsEnabledMessage'));
+    });
+
+    test('should handle FdnCheckFailure', function() {
+      subject.call('123');
+      mockCall.onerror(createCallError('FdnCheckFailure'));
       assert.isTrue(spyConfirmShow.calledWith('fdnIsEnabledTitle',
                                               'fdnIsEnabledMessage'));
     });
@@ -320,7 +346,7 @@ suite('telephony helper', function() {
         mockTelephony.verify();
 
         MockMozMobileConnection.voice.emergencyCallsOnly = true;
-        var dialNumber = '112';
+        dialNumber = '112';
         mockTelephony.expects('dialEmergency').withArgs('112');
         subject.call(dialNumber);
         mockTelephony.verify();
@@ -351,7 +377,7 @@ suite('telephony helper', function() {
         mockTelephony.verify();
 
         MockMozMobileConnection.voice.emergencyCallsOnly = true;
-        var dialNumber = '112';
+        dialNumber = '112';
         mockTelephony.expects('dialEmergency').withArgs('112');
         subject.call(dialNumber);
         MockNavigatorSettings.mReplyToRequests();

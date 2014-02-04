@@ -45,6 +45,8 @@ var CardsView = (function() {
 
   var windowWidth = window.innerWidth;
 
+  var lastInTimeCapture;
+
   // init events
   var gd = new GestureDetector(cardsView);
   gd.startDetecting();
@@ -89,16 +91,10 @@ var CardsView = (function() {
     return stringHTML;
   }
 
-  function fireCardChange() {
-    var current = cardsList.children[currentDisplayed];
-    var title = '';
-    if (current) {
-      title = runningApps[current.dataset.origin].name;
-    }
-    window.dispatchEvent(new CustomEvent('cardchange', {
-      detail: {
-        title: title
-      }}));
+  function fireCardViewClosed() {
+    setTimeout(function nextTick() {
+      window.dispatchEvent(new CustomEvent('cardviewclosed'));
+    });
   }
 
   // Build and display the card switcher overlay
@@ -106,10 +102,14 @@ var CardsView = (function() {
   // than trying to keep it in sync with app launches.  Performance is
   // not an issue here given that the user has to hold the HOME button down
   // for one second before the switcher will appear.
-  // The second parameter, isRocketbar, determines how to display the
+  // The second parameter, inRocketbar, determines how to display the
   // cardswitcher inside of the rocketbar. Both modes are necessary until
   // Rocketbar is enabled by default, then this will go away.
-  function showCardSwitcher(inTimeCapture, inRocketbar) {
+  function showCardSwitcher(inRocketbar) {
+
+    var inTimeCapture = lastInTimeCapture;
+    lastInTimeCapture = false;
+
     if (cardSwitcherIsShown())
       return;
 
@@ -129,7 +129,7 @@ var CardsView = (function() {
     // Return early if inRocketbar and there are no apps besides homescreen
     if (Object.keys(runningApps).length < 2 && inRocketbar) {
       // Fire a cardchange event to notify the rocketbar that there are no cards
-      fireCardChange();
+      fireCardViewClosed();
       return;
     } else if (inRocketbar) {
       screenElement.classList.add('task-manager');
@@ -219,7 +219,6 @@ var CardsView = (function() {
     placeCards();
     // At the beginning only the current card can listen to tap events
     currentCardStyle.pointerEvents = 'auto';
-    fireCardChange();
     window.addEventListener('tap', CardsView);
 
     function addCard(origin, app, displayedAppCallback) {
@@ -453,7 +452,6 @@ var CardsView = (function() {
     }
     // Make the cardsView overlay inactive
     cardsView.classList.remove('active');
-    screenElement.classList.remove('task-manager');
     cardsViewShown = false;
 
     // And remove all the cards from the document after the transition
@@ -463,6 +461,7 @@ var CardsView = (function() {
       cardsList.innerHTML = '';
       prevCardStyle = currentCardStyle = nextCardStyle = currentCard =
       prevCard = nextCard = deltaX = null;
+      screenElement.classList.remove('task-manager');
     }
     if (removeImmediately) {
       removeCards();
@@ -471,7 +470,7 @@ var CardsView = (function() {
       cardsView.addEventListener('transitionend', removeCards);
     }
 
-    fireCardChange();
+    fireCardViewClosed();
   }
 
   function cardSwitcherIsShown() {
@@ -597,8 +596,6 @@ var CardsView = (function() {
     if (noTransition) {
       currentCard.dispatchEvent(new Event('transitionend'));
     }
-
-    fireCardChange();
   }
 
   function moveCards() {
@@ -878,6 +875,14 @@ var CardsView = (function() {
     },
   false);
 
+  function maybeShowInRocketbar() {
+    if (Rocketbar.enabled) {
+      Rocketbar.render(true);
+    } else {
+      showCardSwitcher();
+    }
+  }
+
   function cv_handleEvent(evt) {
     switch (evt.type) {
       case 'mousedown':
@@ -905,6 +910,8 @@ var CardsView = (function() {
         if (!cardSwitcherIsShown())
           return;
 
+        window.dispatchEvent(new CustomEvent('cardviewclosedhome'));
+
         evt.stopImmediatePropagation();
         hideCardSwitcher();
         break;
@@ -920,7 +927,7 @@ var CardsView = (function() {
         break;
 
       case 'taskmanagershow':
-        showCardSwitcher(null, true);
+        showCardSwitcher(true);
         break;
 
       case 'taskmanagerhide':
@@ -934,10 +941,11 @@ var CardsView = (function() {
         SleepMenu.hide();
         var app = AppWindowManager.getActiveApp();
         if (!app) {
-          showCardSwitcher();
+          maybeShowInRocketbar();
         } else {
           app.getScreenshot(function onGettingRealtimeScreenshot() {
-            showCardSwitcher(true);
+            lastInTimeCapture = true;
+            maybeShowInRocketbar();
           });
         }
         break;

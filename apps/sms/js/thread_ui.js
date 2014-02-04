@@ -13,6 +13,8 @@
 'use strict';
 
 var attachmentMap = new WeakMap();
+var isEmptyOnBackspace = false;
+var isHoldingBackspace = false;
 
 function thui_mmsAttachmentClick(target) {
   var attachment = attachmentMap.get(target);
@@ -58,6 +60,7 @@ var ThreadUI = global.ThreadUI = {
   BANNER_DURATION: 2000,
   // delay between 2 counter updates while composing a message
   UPDATE_DELAY: 500,
+  draft: null,
   recipients: null,
   // Set to |true| when in edit mode
   inEditMode: false,
@@ -97,6 +100,8 @@ var ThreadUI = global.ThreadUI = {
       window.DesktopMockNavigatormozMobileMessage;
 
     window.addEventListener('resize', this.resizeHandler.bind(this));
+    document.addEventListener('visibilitychange',
+                              this.onVisibilityChange.bind(this));
 
     // In case of input, we have to resize the input following UX Specs.
     Compose.on('input', this.messageComposerInputHandler.bind(this));
@@ -106,8 +111,13 @@ var ThreadUI = global.ThreadUI = {
     // Changes on subject input can change the type of the message
     // and size of fields
     this.subjectInput.addEventListener(
-      'keyup', this.onSubjectKeyUp.bind(this)
+      'keydown', this.onSubjectKeydown.bind(this)
     );
+
+    this.subjectInput.addEventListener(
+      'keyup', this.onSubjectKeyup.bind(this)
+    );
+
     this.subjectInput.addEventListener(
       'blur', this.onSubjectBlur.bind(this)
     );
@@ -276,9 +286,28 @@ var ThreadUI = global.ThreadUI = {
     ThreadUI.updateInputMaxHeight();
   },
 
+  onVisibilityChange: function mm_onVisibilityChange(e) {
+    // If we leave the app and are in a thread or compose window
+    // save a message draft if necessary
+    if (document.hidden) {
+      var hash = window.location.hash;
+
+      // Auto-save draft if the user has entered anything
+      // in the composer.
+      if ((hash === '#new' || hash.startsWith('#thread=')) &&
+          (!Compose.isEmpty() || ThreadUI.recipients.length)) {
+        ThreadUI.saveDraft({preserve: true, autoSave: true});
+        Drafts.store();
+      }
+    }
+  },
+
   // Initialize Recipients list and Recipients.View (DOM)
   initRecipients: function thui_initRecipients() {
     var recipientsChanged = (function recipientsChanged(length, record) {
+      if (this.draft) {
+        this.draft.isEdited = true;
+      }
       var isOk = true;
       var strategy;
 
@@ -338,7 +367,7 @@ var ThreadUI = global.ThreadUI = {
     }
 
     this.sentAudioKey = 'message.sent-sound.enabled';
-    this.sentAudio = new Audio('/sounds/sent.ogg');
+    this.sentAudio = new Audio('/sounds/sent.opus');
     this.sentAudio.mozAudioChannelType = 'notification';
     this.sentAudioEnabled = false;
 
@@ -422,8 +451,33 @@ var ThreadUI = global.ThreadUI = {
       }.bind(this), this.IMAGE_RESIZE_DURATION);
     }
   },
+  onSubjectKeydown: function thui_onSubjectKeydown(event) {
+    if (event.keyCode === event.DOM_VK_BACK_SPACE) {
+      // Keydown appears to fire repeatedly (as keypress?),
+      // but keyup only fires once.
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=960946
+      if (!isHoldingBackspace) {
+        isEmptyOnBackspace = !this.subjectInput.value.length;
+      }
 
-  onSubjectKeyUp: function thui_onSubjectKeyUp(event) {
+      isHoldingBackspace = true;
+    } else {
+      isHoldingBackspace = false;
+    }
+  },
+  onSubjectKeyup: function thui_onSubjectKeyup(event) {
+    // Only want to close the subject input when the user
+    // taps backspace on an empty field.
+    if (event.keyCode === event.DOM_VK_BACK_SPACE) {
+      if (isEmptyOnBackspace) {
+        Compose.toggleSubject();
+        this.updateSubjectHeight();
+        isEmptyOnBackspace = false;
+      }
+    }
+
+    isHoldingBackspace = false;
+
     Compose.updateType();
     // Handling user warning for max character reached
     // Only show the warning when the subject field has the focus
@@ -461,6 +515,11 @@ var ThreadUI = global.ThreadUI = {
     if (!isNew || node === null) {
       return;
     }
+
+    // Ensure that Recipients does not trigger focus
+    // on itself, which will cause the cursor to "jump"
+    // back to the recipients input from the message input.
+    Recipients.View.isFocusable = false;
 
     // Restore the recipients list input area to
     // single line view.
@@ -594,7 +653,7 @@ var ThreadUI = global.ThreadUI = {
 
     // Ensure that Recipients does not trigger focus on
     // itself, which causes the keyboard to appear.
-    Recipients.View.isObscured = true;
+    Recipients.View.isFocusable = false;
 
     var activity = new MozActivity({
       name: 'pick',
@@ -612,7 +671,7 @@ var ThreadUI = global.ThreadUI = {
         return;
       }
 
-      Recipients.View.isObscured = false;
+      Recipients.View.isFocusable = true;
 
       var data = Utils.basicContact(
         activity.result.tel[0].value, activity.result
@@ -623,7 +682,7 @@ var ThreadUI = global.ThreadUI = {
     }).bind(this);
 
     activity.onerror = (function(e) {
-      Recipients.View.isObscured = false;
+      Recipients.View.isFocusable = true;
 
       console.log('WebActivities unavailable? : ' + e);
     }).bind(this);
@@ -698,14 +757,12 @@ var ThreadUI = global.ThreadUI = {
         }
       }
 
-      var newMessageContactNode = document.getElementById(
-        'new-message-notice-contact'
-      );
-
+      var notice = this.newMessageNotice;
+      var newMessageContactNode = notice.querySelector('.contact');
       newMessageContactNode.textContent = sender;
 
       this.isNewMessageNoticeShown = true;
-      this.newMessageNotice.classList.remove('hide');
+      notice.classList.remove('hide');
     }).bind(this));
   },
 
@@ -787,8 +844,21 @@ var ThreadUI = global.ThreadUI = {
         return;
       }
 
+      // If there is a draft and the content and recipients
+      // never got edited, re-save if threadless,
+      // then leave without prompting to replace
+      if (this.draft && !this.draft.isEdited) {
+        // Thread-less drafts are orphaned at this point
+        // so they need to be resaved for persistence
+        if (!Threads.currentId) {
+          this.saveDraft({autoSave: true});
+        }
+        leave();
+        return;
+      }
+
       var prompt = 'save-as-draft';
-      if (MessageManager.draft) {
+      if (this.draft) {
         prompt = 'replace-draft';
       }
 
@@ -1431,10 +1501,16 @@ var ThreadUI = global.ThreadUI = {
 
     var notDownloaded = delivery === 'not-downloaded';
     var attachments = message.attachments;
+
+    // If the MMS has invalid empty content(message without attachment and
+    // subject) or contains only subject, we will display corresponding message
+    // and layout type in the message bubble.
+    //
     // Returning attachments would be different based on gecko version:
     // null in b2g18 / empty array in master.
     var noAttachment = (message.type === 'mms' && !notDownloaded &&
       (attachments === null || attachments.length === 0));
+    var invalidEmptyContent = (noAttachment && !message.subject);
 
     if (delivery === 'received' || notDownloaded) {
       classNames.push('incoming');
@@ -1463,8 +1539,10 @@ var ThreadUI = global.ThreadUI = {
       bodyHTML = this._createNotDownloadedHTML(message, classNames);
     }
 
-    if (noAttachment) {
-      classNames = classNames.concat(['error', 'no-attachment']);
+    if (invalidEmptyContent) {
+      classNames = classNames.concat(['error', 'invalid-empty-content']);
+    } else if (noAttachment) {
+      classNames.push('no-attachment');
     }
 
     messageDOM.className = classNames.join(' ');
@@ -1482,7 +1560,7 @@ var ThreadUI = global.ThreadUI = {
     navigator.mozL10n.translate(messageDOM);
 
     var pElement = messageDOM.querySelector('p');
-    if (noAttachment) {
+    if (invalidEmptyContent) {
       navigator.mozL10n.localize(pElement, 'no-attachment-text');
     }
 
@@ -1771,9 +1849,9 @@ var ThreadUI = global.ThreadUI = {
       return;
     }
 
-    // Do nothing for no attachment error because it's not possible to
+    // Do nothing for invalid empty content error because it's not possible to
     // retrieve message again in this edge case.
-    if (elems.message.classList.contains('no-attachment')) {
+    if (elems.message.classList.contains('invalid-empty-content')) {
       return;
     }
 
@@ -1971,10 +2049,10 @@ var ThreadUI = global.ThreadUI = {
 
     // If there was a draft, it just got sent
     // so delete it
-    if (MessageManager.draft) {
-      ThreadListUI.removeThread(MessageManager.draft.id);
-      Drafts.delete(MessageManager.draft);
-      MessageManager.draft = null;
+    if (this.draft) {
+      ThreadListUI.removeThread(this.draft.id);
+      Drafts.delete(this.draft);
+      this.draft = null;
     }
 
     this.updateHeaderData();
@@ -2122,22 +2200,27 @@ var ThreadUI = global.ThreadUI = {
       var errorCode = (request.error && request.error.name) ?
         request.error.name : null;
 
+      var idList = Settings.nonActivateMmsServiceIds;
+      if (!navigator.mozSettings || !idList) {
+        console.error('Settings unavailable');
+        return;
+      }
+
+      // Just pick the first non-active id since there should be only
+      // one non-active id in the array.
+      var nonActiveId = idList[0];
+
       if (errorCode) {
         this.showMessageError(errorCode, {
           messageId: id,
-          confirmHandler: function simSwitch() {
-            var idList = Settings.nonActivateMmsServiceIds;
-            if (!navigator.mozSettings || !idList) {
-              console.error('Settings unavailable');
-              return;
-            }
-
-            // Just pick the first non-active id since there should be only
-            // one non-active id in the array.
-            var nonActiveId = idList[0];
-            Settings.setSimServiceId(nonActiveId);
-            // Retrieve message again and update the message DOM status.
-            setTimeout(ThreadUI.retrieveMMS(id));
+          confirmHandler: function stateResetAndRetry () {
+            // Avoid user to click the download button while sim state is not
+            // ready yet.
+            messageDOM.classList.add('pending');
+            messageDOM.classList.remove('error');
+            navigator.mozL10n.localize(button, 'downloading');
+            Settings.switchSimHandler(nonActiveId,
+              this.retrieveMMS.bind(this, id));
           }.bind(this)
         });
       }
@@ -2172,6 +2255,7 @@ var ThreadUI = global.ThreadUI = {
 
   toFieldInput: function(event) {
     var typed;
+
     if (event.target.isPlaceholder) {
       typed = event.target.textContent.trim();
       this.searchContact(typed, this.listContacts.bind(this));
@@ -2539,15 +2623,15 @@ var ThreadUI = global.ThreadUI = {
     // If we were tracking a draft
     // properly update the Drafts object
     // and ThreadList entries
-    if (MessageManager.draft) {
-      Drafts.delete(MessageManager.draft);
+    if (this.draft) {
+      Drafts.delete(this.draft);
       if (Threads.active) {
         Threads.active.timestamp = Date.now();
         ThreadListUI.updateThread(Threads.active);
       } else {
-        ThreadListUI.removeThread(MessageManager.draft.id);
+        ThreadListUI.removeThread(this.draft.id);
       }
-      MessageManager.draft = null;
+      this.draft = null;
     }
   },
 
@@ -2557,13 +2641,14 @@ var ThreadUI = global.ThreadUI = {
    * Saves the currently unsent message content or recipients
    * into a Draft object.  Preserves the currently marked
    * draft if specified.  Draft preservation is intended to
-   * keep MessageManager.draft populated with the currently
+   * keep this.draft populated with the currently
    * showing draft when the app is hidden, so when the app
    * comes out of hiding, it knows there is a draft to continue
    * to keep track of.
    *
    * @param {Object} opts Optional parameters for saving a draft.
    *                  - preserve, boolean whether or not to preserve draft.
+   *                  - autoSave, boolean whether this is an auto save.
    */
   saveDraft: function thui_saveDraft(opts) {
     var content, draft, recipients, subject, thread, threadId, type;
@@ -2572,8 +2657,6 @@ var ThreadUI = global.ThreadUI = {
     subject = Compose.getSubject();
     type = Compose.type;
 
-    // TODO Also store subject
-
     if (Threads.active) {
       recipients = Threads.active.participants;
       threadId = Threads.currentId;
@@ -2581,7 +2664,7 @@ var ThreadUI = global.ThreadUI = {
       recipients = this.recipients.numbers;
     }
 
-    var draftId = MessageManager.draft ? MessageManager.draft.id : null;
+    var draftId = this.draft ? this.draft.id : null;
 
     draft = new Draft({
       recipients: recipients,
@@ -2612,13 +2695,19 @@ var ThreadUI = global.ThreadUI = {
     // not explicitly preserved for the
     // draft replacement case
     if (!opts || (opts && !opts.preserve)) {
-      MessageManager.draft = null;
+      this.draft = null;
     }
 
     // Set the MessageManager draft if it is
     // not already set and meant to be preserved
-    if (!MessageManager.draft && (opts && opts.preserve)) {
-      MessageManager.draft = draft;
+    if (!this.draft && (opts && opts.preserve)) {
+      this.draft = draft;
+    }
+
+    // Show draft saved banner if not an
+    // auto save operation
+    if (!opts || (opts && !opts.autoSave)) {
+      ThreadListUI.onDraftSaved();
     }
   }
 };

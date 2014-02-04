@@ -229,6 +229,26 @@ function MessageListCard(domNode, mode, args) {
 
   this.onCurrentMessage = this.onCurrentMessage.bind(this);
   headerCursor.on('currentMessage', this.onCurrentMessage);
+
+  // If this card is created after header_cursor is set up
+  // with a messagesSlice, then need to bootstrap this card
+  // to catch up, since the normal events will not fire.
+  // Common scenarios for this case are: going back to the
+  // message list after reading a message from a notification,
+  // or from a compose triggered from an activity. However,
+  // only do this if there is a current folder. A case
+  // where there is not a folder: after deleting an account,
+  // and the UI is bootstrapping back to existing account.
+  // Also, search pushes a new message_list card, but search
+  // needs a special slice, created only when the search
+  // actually starts. So do not bootstrap in that case.
+  if (this.curFolder && this.mode === 'nonsearch') {
+    var items = headerCursor.messagesSlice && headerCursor.messagesSlice.items;
+    if (items && items.length) {
+      this.messages_splice(0, 0, items);
+      this.messages_complete(0);
+    }
+  }
 }
 MessageListCard.prototype = {
   /**

@@ -1,7 +1,7 @@
 /* global MocksHelper, MockAttachment, MockL10n, loadBodyHTML,
          Compose, Attachment, MockMozActivity, Settings, Utils,
          AttachmentMenu, Draft, document, XMLHttpRequest, Blob, navigator,
-         setTimeout */
+         setTimeout, ThreadUI */
 
 /*jshint strict:false */
 /*jslint node: true */
@@ -21,6 +21,7 @@ requireApp('sms/test/unit/mock_recipients.js');
 requireApp('sms/test/unit/mock_settings.js');
 requireApp('sms/test/unit/mock_utils.js');
 requireApp('sms/test/unit/mock_moz_activity.js');
+requireApp('sms/test/unit/mock_thread_ui.js');
 
 var mocksHelperForCompose = new MocksHelper([
   'AttachmentMenu',
@@ -28,7 +29,8 @@ var mocksHelperForCompose = new MocksHelper([
   'Recipients',
   'Utils',
   'MozActivity',
-  'Attachment'
+  'Attachment',
+  'ThreadUI'
 ]).init();
 
 suite('compose_test.js', function() {
@@ -85,13 +87,15 @@ suite('compose_test.js', function() {
 
   suite('Message Composition', function() {
     var message,
-        subject;
+        subject,
+        sendButton;
 
     setup(function() {
       loadBodyHTML('/index.html');
       Compose.init('messages-compose-form');
       message = document.querySelector('[contenteditable]');
       subject = document.getElementById('messages-subject-input');
+      sendButton = document.getElementById('messages-send-button');
     });
 
     suite('Subject', function() {
@@ -116,6 +120,20 @@ suite('compose_test.js', function() {
         Compose.toggleSubject();
         assert.equal(Compose.getSubject(), content);
       });
+
+      // Per discussion, this is being deferred to another bug
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=959360
+      //
+      // test('Toggle type display visibility', function() {
+      //   assert.isFalse(sendButton.classList.contains('has-counter'));
+
+      //   subject.value = 'hi';
+      //   Compose.toggleSubject();
+      //   assert.isTrue(sendButton.classList.contains('has-counter'));
+
+      //   Compose.toggleSubject();
+      //   assert.isFalse(sendButton.classList.contains('has-counter'));
+      // });
 
       test('Sent subject doesnt have line breaks (spaces instead)', function() {
         // Set the value
@@ -405,6 +423,30 @@ suite('compose_test.js', function() {
         var txt = Compose.getContent();
         assert.ok(txt, d2.content.join(''));
         assert.ok(txt[1] instanceof Attachment);
+      });
+    });
+
+    suite('Changing content marks draft as edited', function() {
+
+      setup(function() {
+        ThreadUI.draft = new Draft({
+          isEdited: false
+        });
+      });
+
+      test('Changing message', function() {
+        Compose.append('Message');
+        assert.isTrue(ThreadUI.draft.isEdited);
+      });
+
+      test('Changing subject', function() {
+        Compose.toggleSubject();
+        assert.isTrue(ThreadUI.draft.isEdited);
+      });
+
+      test('Changing attachments', function() {
+        Compose.append(mockAttachment(12345));
+        assert.isTrue(ThreadUI.draft.isEdited);
       });
     });
 
